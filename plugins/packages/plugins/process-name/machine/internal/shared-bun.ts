@@ -1,11 +1,14 @@
 import {
-  asAppPath,
   joinAppPath,
   type AppPath,
 } from "@plugins/infra/plugins/host-fs/plugins/user-path/core";
 import { readdir } from "@plugins/packages/plugins/timed-fs/core";
 import { processNamesDir } from "../../data-dirs";
-import { cloneNamedBinary, type NamedBinary } from "./process-name";
+import {
+  cloneNamedBinary,
+  RUNNING_BUN,
+  type NamedBinary,
+} from "./process-name";
 
 // The machine-wide named Buns: `process-names/bun-<version>/`, one APFS clone
 // per name and Bun version, shared by every checkout and backend. The CLI
@@ -38,7 +41,7 @@ const PROCESSES = "processes";
  */
 export function cloneSharedBun(name: string): Promise<NamedBinary> {
   return cloneNamedBinary({
-    bin: asAppPath(process.execPath),
+    bin: RUNNING_BUN,
     dir: joinAppPath(sharedBunDir(), PROCESSES),
     name,
   });

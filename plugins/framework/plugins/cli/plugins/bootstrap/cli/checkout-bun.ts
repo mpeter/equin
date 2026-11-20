@@ -1,6 +1,7 @@
 import { asAppPath } from "@plugins/infra/plugins/host-fs/plugins/user-path/core";
 import {
   refreshCheckoutBun,
+  RUNNING_BUN,
   sharedBunDir,
 } from "@plugins/packages/plugins/process-name/machine";
 
@@ -15,7 +16,7 @@ import {
 export async function recordCheckoutBun(): Promise<void> {
   await refreshCheckoutBun(
     asAppPath(process.cwd()),
-    asAppPath(process.execPath),
+    RUNNING_BUN,
     sharedBunDir(),
   );
 }

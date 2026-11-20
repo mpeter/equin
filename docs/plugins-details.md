@@ -23460,6 +23460,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `packages/process-name.cloneNamedBinary`
           - `packages/process-name.cloneSharedBun`
           - `packages/process-name.isCurrentCloneOf`
+          - `packages/process-name.RUNNING_BUN`
           - `packages/process-name.sharedBunDir`
           - `packages/process-name.sharedBunsNamed`
         - Exports (values): `heldAtClaudeLimit`
@@ -44715,7 +44716,9 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `framework/cli/bootstrap`
           - `framework/cli/build`
       - Machine:
-        - Exports (types): `NamedBinary`
+        - Exports (types):
+          - `CloneSource`
+          - `NamedBinary`
         - Exports (values):
           - `CHECKOUT_BUN_DIR`
           - `checkoutBun`
@@ -44723,6 +44726,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `cloneSharedBun`
           - `isCurrentCloneOf`
           - `refreshCheckoutBun`
+          - `RUNNING_BUN`
           - `sharedBunDir`
           - `sharedBunsNamed`
     - **`refcount-hub`** — Keyed refcounted subscription hub: createRefcountHub(open) shares ONE underlying subscription per key among every holder — the first acquire opens it (sync or async), each event fans out to every holder, the last release stops it — so N readers of one source cost one watch.

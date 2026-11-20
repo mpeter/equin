@@ -28,9 +28,12 @@ fi
 # exec) once per machine, not once per checkout. The CLI records the checkout's
 # Bun (it knows the real binary behind mise's shim), trusted only while its stamp
 # is newer than mise.lock. A clone, never a hardlink: macOS SIGKILLs an exec
-# whose inode it resolves to a deleted name (process-name's CLAUDE.md). A clone
-# keeps the source's mtime, so the name is current while it is not the same file
-# as `bun` and neither is newer — re-cloned only then.
+# whose inode it resolves to a deleted name (process-name's CLAUDE.md). The
+# clone keeps the source's mtime (`-p`), so the name is current while it is not
+# the same file as `bun` and neither is newer — re-cloned only then: a re-clone
+# renames over the file a starting process exec'd, and on Linux leaves it an
+# execPath ending in ` (deleted)`. GNU cp clones with `--reflink=always` (its
+# `-c` is SELinux context); BSD cp rejects that and clones with `-c`.
 # Builtins plus `cp`: on any miss — none recorded, a toolchain change, a
 # refused clone — it is the plain `bun` below, and that run records it again.
 names=node_modules/.cache/equin-bun
@@ -51,7 +54,9 @@ fi
 if [ -f "$names/bun" ] && [ -d "$names/verbs" ] && [ "$names/stamp" -nt mise.lock ]; then
   if { [ -f "$named" ] && ! [ "$named" -ef "$names/bun" ] &&
     ! [ "$named" -nt "$names/bun" ] && ! [ "$names/bun" -nt "$named" ]; } ||
-    { cp -c "$names/bun" "$named.$$" 2>/dev/null && mv -f "$named.$$" "$named"; }; then
+    { { cp -p --reflink=always "$names/bun" "$named.$$" ||
+      cp -cp "$names/bun" "$named.$$"; } 2>/dev/null &&
+      mv -f "$named.$$" "$named"; }; then
     exec "$named" plugins/framework/plugins/cli/bin/index.ts "$@"
   fi
   rm -f "$named.$$"

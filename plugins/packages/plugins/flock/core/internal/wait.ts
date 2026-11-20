@@ -45,6 +45,18 @@ const FLOCK_WAIT_PATH = scriptPath(
 
 const GRANTED = "granted\n";
 
+/**
+ * The Bun this process runs on, to exec the child on. Linux spells an
+ * executable whose name was renamed over or removed `<path> (deleted)`, and
+ * Bun's `process.execPath` (read from `/proc/self/exe` at startup) with it —
+ * a re-cloned `equin · <verb>` does that to the processes it named, and
+ * spawning that execPath is ENOENT. `/proc/self/exe` execs the running file
+ * whatever became of its name; `argv0` keeps the child's argv (what `ps` shows
+ * and `processKindOf` reads) as it was.
+ */
+const SELF_EXE =
+  process.platform === "linux" ? "/proc/self/exe" : process.execPath;
+
 // One `flock-wait` child that blocks (off our event loop, on a worker thread of
 // its own) on ONE lock file and writes "granted\n" once it holds it. `--smol`
 // halves RSS (37 MB vs 76 MB).
@@ -59,7 +71,8 @@ const GRANTED = "granted\n";
 // happens when WE die, by any means, SIGKILL included — so a lock held through
 // a child can never outlive the process it was taken for.
 function spawnWait(file: string, shared: boolean) {
-  return Bun.spawn([process.execPath, "--smol", FLOCK_WAIT_PATH], {
+  return Bun.spawn([SELF_EXE, "--smol", FLOCK_WAIT_PATH], {
+    argv0: process.execPath,
     stdin: "pipe",
     stdout: "pipe",
     stderr: "inherit",

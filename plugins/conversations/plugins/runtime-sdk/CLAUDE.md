@@ -459,6 +459,7 @@ Gotchas the spike hit:
     - `packages/process-name.cloneNamedBinary`
     - `packages/process-name.cloneSharedBun`
     - `packages/process-name.isCurrentCloneOf`
+    - `packages/process-name.RUNNING_BUN`
     - `packages/process-name.sharedBunDir`
     - `packages/process-name.sharedBunsNamed`
   - Exports (values): `heldAtClaudeLimit`

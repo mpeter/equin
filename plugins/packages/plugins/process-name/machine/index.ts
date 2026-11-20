@@ -6,8 +6,9 @@ export {
   cloneNamedBinary,
   isCurrentCloneOf,
   refreshCheckoutBun,
+  RUNNING_BUN,
 } from "./internal/process-name";
-export type { NamedBinary } from "./internal/process-name";
+export type { CloneSource, NamedBinary } from "./internal/process-name";
 export {
   cloneSharedBun,
   sharedBunDir,

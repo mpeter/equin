@@ -7,6 +7,7 @@ import {
   rename,
   rm,
   symlink,
+  utimes,
   writeFile,
 } from "node:fs/promises";
 import {
@@ -16,6 +17,7 @@ import {
   stat,
 } from "@plugins/packages/plugins/timed-fs/core";
 import {
+  asAppPath,
   joinAppPath,
   type AppPath,
 } from "@plugins/infra/plugins/host-fs/plugins/user-path/core";
@@ -38,6 +40,38 @@ import {
 // deleted was killed 7 times in 2,600 runs, a stable clone 0 in 2,300 — and a
 // clone's only name is the one exec'd. A fresh name costs one ~1.1 s scan on
 // its first exec either way, so a current clone is never re-made.
+//
+// LINUX names a process by its executable's file name too (`comm`), and clones
+// there with FICLONE (XFS, Btrfs). Its hazard is the other side of the same
+// rename: once a running executable's name is renamed over or removed, the
+// kernel spells it `<path> (deleted)` — `/proc/self/exe` reads so, and Bun's
+// `process.execPath`, read from it at startup, can too: a re-clone landing
+// between a `./equin` exec and Bun's start leaves that process an execPath that
+// names no file, so resolving, statting or spawning it is ENOENT. The Bun this
+// process runs on is therefore never passed as a path: it is
+// {@link RUNNING_BUN}, read through `/proc/self/exe`, which opens the running
+// file whatever became of its name.
+
+/**
+ * The Bun this process runs on, as a clone source. Not `process.execPath`: on
+ * Linux that can name a file no longer there (see the top of this file).
+ */
+export const RUNNING_BUN = Symbol("the Bun this process runs on");
+
+/** What a clone is made from: an executable at a path, or this process's Bun. */
+export type CloneSource = AppPath | typeof RUNNING_BUN;
+
+/**
+ * The file `bin` is, opened at the time of the call: a path with its symlinks
+ * resolved, or the running Bun's file — `/proc/self/exe` on Linux, never
+ * resolved, since its target is the `(deleted)` text.
+ */
+async function sourceFile(bin: CloneSource): Promise<AppPath> {
+  if (bin !== RUNNING_BUN) return asAppPath(await realpath(bin));
+  if (process.platform === "linux") return asAppPath("/proc/self/exe");
+  // macOS's execPath is the path exec'd, which never reads `(deleted)`.
+  return asAppPath(await realpath(asAppPath(process.execPath)));
+}
 
 export type NamedBinary =
   | { kind: "cloned"; path: AppPath }
@@ -59,7 +93,8 @@ function stagingSuffix(): string {
 const REFUSALS = new Set(["EXDEV", "EPERM", "ENOTSUP", "EACCES", "ENOSYS"]);
 
 /**
- * Clone `bin` (symlinks resolved) into `dir` as `name`. A name already holding
+ * Clone `bin` (symlinks resolved; {@link RUNNING_BUN} for this process's own
+ * Bun) into `dir` as `name`. A name already holding
  * a current clone of it is left alone — no churn, no fresh scan; otherwise the
  * clone is swapped in with one rename, so a concurrent launch through the same
  * name never finds it missing or half-made, and an upgrade reaches it. A
@@ -74,12 +109,12 @@ const REFUSALS = new Set(["EXDEV", "EPERM", "ENOTSUP", "EACCES", "ENOSYS"]);
  * malware scan — the ENOENT SIGKILL at the top of this file.
  */
 export async function cloneNamedBinary(opts: {
-  bin: AppPath;
+  bin: CloneSource;
   dir: AppPath;
   name: string;
 }): Promise<NamedBinary> {
   const path = joinAppPath(opts.dir, opts.name);
-  const source = await realpath(opts.bin);
+  const source = await sourceFile(opts.bin);
   const sourceStat = await stat(source);
   await mkdir(opts.dir, { recursive: true });
   await removeOrphanStaging(opts.dir);
@@ -89,7 +124,7 @@ export async function cloneNamedBinary(opts: {
   const held = await waitForFlock(joinAppPath(opts.dir, ".locks", opts.name));
   try {
     if (await isCurrentClone(path, sourceStat)) return { kind: "cloned", path };
-    return await swapInClone(source, opts.dir, path);
+    return await swapInClone(source, sourceStat, opts.dir, path);
   } finally {
     await held.release();
   }
@@ -97,15 +132,15 @@ export async function cloneNamedBinary(opts: {
 
 /** Clone `source` beside `path` and rename it over `path`. */
 async function swapInClone(
-  source: string,
+  source: AppPath,
+  sourceStat: Stats,
   dir: AppPath,
   path: AppPath,
 ): Promise<NamedBinary> {
   const staging = joinAppPath(dir, `.${stagingSuffix()}`);
   try {
-    // The clone keeps the source's mtime (to the nanosecond), which is how
-    // `isCurrentClone` — and the `./equin` script — recognise it later.
     await copyFile(source, staging, constants.COPYFILE_FICLONE_FORCE);
+    await keepMtime(staging, sourceStat);
     await rename(staging, path);
   } catch (err) {
     await rm(staging, { force: true });
@@ -114,6 +149,28 @@ async function swapInClone(
     return { kind: "refused", code };
   }
   return { kind: "cloned", path };
+}
+
+/**
+ * Give the clone at `staging` its source's mtime, which is how
+ * `isCurrentClone` — and the `./equin` script — recognise it later. An APFS
+ * clone keeps it already (to the nanosecond); a Linux FICLONE copy is stamped
+ * with the time of the copy, and without this every run would find its clone
+ * outdated and rename a new one over it — over the file a process just exec'd.
+ * Set to the millisecond, the precision {@link sameMtime} compares at.
+ */
+async function keepMtime(staging: AppPath, source: Stats): Promise<void> {
+  const cloned = await stat(staging);
+  if (sameMtime(cloned, source)) return;
+  await utimes(staging, cloned.atime, new Date(Math.trunc(source.mtimeMs)));
+}
+
+/**
+ * The same mtime, to the millisecond: what `utimes` given a `Date` can set
+ * exactly, so a clone {@link keepMtime} stamped compares equal to its source.
+ */
+function sameMtime(a: Stats, b: Stats): boolean {
+  return Math.trunc(a.mtimeMs) === Math.trunc(b.mtimeMs);
 }
 
 /**
@@ -154,17 +211,18 @@ function pidAlive(pid: number): boolean {
 }
 
 /**
- * Whether `path` is a current clone of one of `bins` (symlinks resolved) —
- * what {@link cloneNamedBinary} would leave alone. False when `path` is gone.
- * For whoever keeps clones past their process (the sdk runtime's agents) and
- * must tell one an upgrade left behind.
+ * Whether `path` is a current clone of one of `bins` (symlinks resolved;
+ * {@link RUNNING_BUN} for this process's own Bun) — what
+ * {@link cloneNamedBinary} would leave alone. False when `path` is gone. For
+ * whoever keeps clones past their process (the sdk runtime's agents) and must
+ * tell one an upgrade left behind.
  */
 export async function isCurrentCloneOf(
   path: AppPath,
-  bins: readonly AppPath[],
+  bins: readonly CloneSource[],
 ): Promise<boolean> {
   for (const bin of bins) {
-    if (await isCurrentClone(path, await stat(await realpath(bin))))
+    if (await isCurrentClone(path, await stat(await sourceFile(bin))))
       return true;
   }
   return false;
@@ -183,9 +241,7 @@ async function isCurrentClone(path: AppPath, source: Stats): Promise<boolean> {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw err;
   }
-  return (
-    s.nlink === 1 && s.size === source.size && s.mtimeMs === source.mtimeMs
-  );
+  return s.nlink === 1 && s.size === source.size && sameMtime(s, source);
 }
 
 /**
@@ -198,8 +254,9 @@ async function isCurrentClone(path: AppPath, source: Stats): Promise<boolean> {
 export const CHECKOUT_BUN_DIR = "node_modules/.cache/equin-bun";
 
 /**
- * Record `bin` (the Bun this CLI runs on) as the checkout's Bun, for `./equin`
- * to name the next CLI process from, and point the checkout's `verbs` at
+ * Record `bin` (the Bun this CLI runs on: {@link RUNNING_BUN}) as the
+ * checkout's Bun, for `./equin` to name the next CLI process from, and point
+ * the checkout's `verbs` at
  * `verbsDir` — the machine-wide clones of that Bun, one per verb. A shell
  * cannot find the real Bun behind mise's shim without spawning mise, nor the
  * data root, so the CLI — which knows both — leaves them there. Trusted by the
@@ -215,7 +272,7 @@ export const CHECKOUT_BUN_DIR = "node_modules/.cache/equin-bun";
  */
 export async function refreshCheckoutBun(
   root: AppPath,
-  bin: AppPath,
+  bin: CloneSource,
   verbsDir: AppPath,
 ): Promise<NamedBinary> {
   const trusted = (await checkoutBun(root)) !== null;
