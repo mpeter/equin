@@ -1,36 +1,28 @@
 import { Button } from "@plugins/primitives/plugins/css/plugins/ui-kit/web";
 import { TooltipDoc } from "@plugins/primitives/plugins/overlay/plugins/tooltip/web";
-import { SOURCE_REPO_URL } from "@plugins/framework/plugins/product-name/core";
-import { buildIssueUrl } from "@plugins/integrations/plugins/github-issues/core";
 import { brand } from "@plugins/ui/plugins/icons/core";
 import { Icon } from "@plugins/ui/plugins/icons/web";
 import { Clip } from "@plugins/primitives/plugins/css/plugins/clip/web";
 import { yieldClass } from "@plugins/primitives/plugins/css/plugins/yield/web";
 import type { WishFooterActionProps } from "@plugins/wish/web";
+import { wishIssueLink } from "../internal/issue-link";
 import { useEnvironmentNotes } from "../internal/use-environment-notes";
 
 const githubIcon = brand("github");
-
-/** The repository label every wish filed from the app carries (applied for a filer with triage rights). */
-const WISH_LABEL = "Wish";
 
 /**
  * Sends the drafted wish to GitHub instead of an agent here: a real
  * `<a target="_blank">` to the repository's new-issue form, prefilled with the
  * wish (picks made readable, titled from its first line) and the page it is
- * about, closed by the environment a maintainer asks for first: the equin
+ * about (only when the draft's URL capture is on), closed by the environment a maintainer asks for first: the equin
  * version (release, commit, commits ahead of / behind the trunk), the system
- * and the browser. The browser opens the tab on the user's click; the click
- * also clears the draft and closes the popover, as Launch does once it has
- * filed.
+ * and the browser. The browser opens the tab on the user's click. The click
+ * leaves the draft alone: opening a link says nothing about an issue having
+ * been filed, so the draft stays until the user dismisses it themselves.
  */
-export function FileOnGithubButton({
-  draft,
-  pageUrl,
-  discard,
-}: WishFooterActionProps) {
+export function FileOnGithubButton({ draft, pageUrl }: WishFooterActionProps) {
   const environment = useEnvironmentNotes();
-  const tooltip = (
+  const blankTooltip = (
     <TooltipDoc title="File on GitHub">
       Open a GitHub issue with this wish instead of launching an agent. The
       issue names your equin version, system and browser.
@@ -42,30 +34,34 @@ export function FileOnGithubButton({
         variant="ghost"
         disabled
         loading={draft.trim() !== "" && environment.kind === "loading"}
-        tooltip={tooltip}
+        tooltip={blankTooltip}
         className="gap-none"
       >
         <GithubFace />
       </Button>
     );
   }
-  const href = buildIssueUrl({
-    repoUrl: SOURCE_REPO_URL,
-    text: draft,
-    ...(pageUrl === null ? {} : { pageUrl }),
-    notes: [
-      ...environment.notes,
-      "Filed from the Wish button in the equin app",
-    ],
-    labels: [WISH_LABEL],
+  const { href, title, labels } = wishIssueLink({
+    draft,
+    pageUrl,
+    environmentNotes: environment.notes,
   });
+  const tooltip = (
+    <TooltipDoc title="File on GitHub">
+      Opens a new issue on GitHub; the draft stays here until you clear it.
+      Title: {title}. Label: {labels.join(", ")}.{" "}
+      {pageUrl === null
+        ? "No page URL is included."
+        : "The page URL is included."}{" "}
+      The issue names your equin version, system and browser.
+    </TooltipDoc>
+  );
   return (
     <Button
       variant="ghost"
       tooltip={tooltip}
       className="gap-none"
       render={<a href={href} target="_blank" rel="noopener noreferrer" />}
-      onClick={discard}
     >
       <GithubFace />
     </Button>

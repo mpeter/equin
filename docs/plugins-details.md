@@ -41807,7 +41807,9 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `githubRunArm`
     - **`github-issues`** — GitHub new-issue links: buildIssueUrl turns a written request (its <ui-context> picks made readable, each raw tag kept in a collapsed block), the page it is about and the host's own note lines into a prefilled issues/new link held under GitHub's length cap.
       - Core:
-        - Uses: `primitives/ui-context.splitUiContext`
+        - Uses:
+          - `primitives/ui-context.splitUiContext`
+          - `primitives/ui-context.withoutUiContextUrl`
         - Exports (types):
           - `IssueDraft`
           - `IssuePick`
@@ -59103,6 +59105,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `UI_CONTEXT_RE`
           - `uiContextLabel`
           - `UiContextMetaSchema`
+          - `withoutUiContextUrl`
       - Test helpers:
         - Web: `@plugins/primitives/plugins/ui-context/web/testing`
           - `parseLineage` — Parse a serialized lineage back into nodes (outer→inner).

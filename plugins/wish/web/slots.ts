@@ -35,8 +35,6 @@ export interface WishFooterActionProps {
   draft: string;
   /** The URL of the page the wish is about; `null` when it is about no page. */
   pageUrl: string | null;
-  /** Clear the draft and close the popover — the wish was sent another way. */
-  discard: () => void;
 }
 
 export interface WishFooterActionContribution {

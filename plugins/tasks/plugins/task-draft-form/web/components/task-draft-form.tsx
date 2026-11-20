@@ -25,6 +25,7 @@ import type { TaskChainRelateMode } from "@plugins/tasks/core";
 import type { LaunchOptionValues } from "@plugins/tasks/plugins/launch-options/web";
 import { useShowExperimentalMarks } from "@plugins/framework/plugins/cli/plugins/build/plugins/experimental-marks/web";
 import { useCaptureUrlDefault } from "../use-capture-url-default";
+import { sharedPageUrl } from "../internal/submit";
 import { symbol } from "@plugins/ui/plugins/icons/core";
 import { TASK_DRAFT_FORM_WIDTH } from "../../core";
 import { Icon } from "@plugins/ui/plugins/icons/web";
@@ -82,12 +83,6 @@ export interface TaskDraftFormProps {
   footerActions?: (draft: TaskDraftActionDraft) => React.ReactNode;
   /** The URL of the page the draft is about (`null`: about no page) — handed to the actions. */
   pageUrl?: string | null;
-  /**
-   * Clears the draft and closes the form — what an action calls once it has
-   * handled the request another way (filed it elsewhere). Defaults to
-   * `onCancel` (close, draft kept) where there is no draft to clear.
-   */
-  onDiscard?: () => void;
   /** The head card's placeholder; defaults to "Describe the task…". */
   placeholder?: string;
   /**
@@ -129,10 +124,13 @@ export function makeCard(
 export interface TaskDraftActionDraft {
   /** The words drafted so far: every non-empty card, in chain order, a blank line apart. */
   text: string;
-  /** The URL of the page the draft is about; `null` when it is about no page. */
+  /**
+   * The page URL the draft shares: the page's URL only when every drafted
+   * card's URL capture is on (a text joined from cards leaves one footer, so
+   * one card declining keeps the URL out); `null` otherwise, and for a draft
+   * about no page.
+   */
   pageUrl: string | null;
-  /** Clear the draft and close the form — the request was handled another way. */
-  discard: () => void;
 }
 
 function draftText(cards: readonly CardDraft[]): string {
@@ -162,7 +160,6 @@ export function TaskDraftForm({
   headerActions,
   footerActions,
   pageUrl = null,
-  onDiscard,
   placeholder,
   headInsertRef,
   hintAnchors,
@@ -187,8 +184,7 @@ export function TaskDraftForm({
   const captureUrlDefault = useCaptureUrlDefault();
   const actionDraft: TaskDraftActionDraft = {
     text: draftText(cards),
-    pageUrl,
-    discard: onDiscard ?? onCancel,
+    pageUrl: sharedPageUrl(cards, pageUrl, captureUrlDefault),
   };
 
   const updateCard = (idx: number, patch: Partial<CardDraft>) => {

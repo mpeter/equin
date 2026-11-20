@@ -418,3 +418,23 @@ describe("buildIssueUrl's host-given parts", () => {
     );
   });
 });
+
+describe("buildIssueUrl omitPickUrls", () => {
+  const text = `Move ${tag(HEADLINE)} up`;
+  const bodyOf = (url: string) => new URL(url).searchParams.get("body") ?? "";
+
+  test("keeps each pick's url by default", () => {
+    const body = bodyOf(buildIssueUrl({ repoUrl: REPO, text, notes: [] }));
+    expect(body).toContain(`url="${HEADLINE.url}"`);
+  });
+
+  test("leaves the url out of the blocks but keeps the rest of the pick", () => {
+    const body = bodyOf(
+      buildIssueUrl({ repoUrl: REPO, text, notes: [], omitPickUrls: true }),
+    );
+    expect(body).not.toContain("url=");
+    expect(body).not.toContain("equin.ai");
+    expect(body).toContain(`selector="${HEADLINE.selector}"`);
+    expect(body).toContain("[1]");
+  });
+});

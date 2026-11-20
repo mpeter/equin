@@ -39,6 +39,40 @@ export interface SubmitArgs {
   options: readonly LaunchOptionInfo[];
 }
 
+/**
+ * The page URL a card shares: the draft page's URL when the card's toggle (or,
+ * never touched, the app's default) says so, and nothing for a draft about no
+ * page. The one place that decides it — the filed task and anything else made
+ * from the draft (the issue link) read it here, so they cannot disagree.
+ */
+export function capturedPageUrl(
+  card: Pick<CardDraft, "includeUrl">,
+  url: string | null,
+  captureUrlDefault: boolean,
+): string | undefined {
+  return url !== null && (card.includeUrl ?? captureUrlDefault)
+    ? url
+    : undefined;
+}
+
+/**
+ * The page URL one action over the whole drafted text may carry: the URL only
+ * when every non-empty card captures it, else `null`.
+ */
+export function sharedPageUrl(
+  cards: readonly CardDraft[],
+  url: string | null,
+  captureUrlDefault: boolean,
+): string | null {
+  const drafted = cards.filter((c) => c.text.trim() !== "");
+  if (drafted.length === 0) return null;
+  return drafted.every(
+    (c) => capturedPageUrl(c, url, captureUrlDefault) !== undefined,
+  )
+    ? url
+    : null;
+}
+
 export interface SubmitOutcome {
   ok: boolean;
   errorMessage?: string;
@@ -72,10 +106,7 @@ export async function submitChain(
         options: Object.fromEntries(
           args.options.map((o) => [o.id, launchOptionValue(c.options, o)]),
         ),
-        url:
-          args.url !== null && (c.includeUrl ?? args.captureUrlDefault)
-            ? args.url
-            : undefined,
+        url: capturedPageUrl(c, args.url, args.captureUrlDefault),
         attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
         linkedToPrev: i > 0 && !c.linkedToPrev ? false : undefined,
       };

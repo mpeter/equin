@@ -262,3 +262,17 @@ export function parseUiContext(tag: string): UiContextMeta | null {
   }
   return meta;
 }
+
+/**
+ * `tag` without its `url` attribute — for text that leaves the app (an issue
+ * link) when the author chose not to share the page. Every other coordinate
+ * stays. The result no longer parses as a token (`url` is its one required
+ * attribute), which is the point: it is a record of where in the app the pick
+ * was, not of which page.
+ */
+export function withoutUiContextUrl(tag: string): string {
+  return tag.replace(
+    /(<ui-context(?:\s+[\w-]+="[^"]*")*?)\s+url="[^"]*"/,
+    "$1",
+  );
+}

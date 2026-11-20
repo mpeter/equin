@@ -1,8 +1,9 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   parseUiContext,
   serializeUiContext,
   UI_CONTEXT_RE,
+  withoutUiContextUrl,
   type UiContextMeta,
   type UiContextProvenance,
 } from "./token";
@@ -103,4 +104,26 @@ test("parses legacy flat-body tags (pre <hint>/<picked-content> split)", () => {
   const match = re.exec(legacy);
   expect(match).not.toBeNull();
   expect(parseUiContext(match![0])).toEqual({ url: "u", element: "div — Old label" });
+});
+
+describe("withoutUiContextUrl", () => {
+  const meta = {
+    url: "https://app.example/a?b=c",
+    element: "button — Save",
+    selector: "main>button",
+    source: "x/save.tsx:7",
+  };
+
+  test("drops the url attribute and keeps every other coordinate and the label", () => {
+    const tag = withoutUiContextUrl(serializeUiContext(meta, "picked"));
+    expect(tag).not.toContain("app.example");
+    expect(tag).not.toContain("url=");
+    expect(tag).toContain('selector="main>button"');
+    expect(tag).toContain('source="x/save.tsx:7"');
+    expect(tag).toContain("button — Save");
+  });
+
+  test("leaves text without a tag alone", () => {
+    expect(withoutUiContextUrl('plain url="x"')).toBe('plain url="x"');
+  });
 });

@@ -58,7 +58,7 @@ while the field is empty; ⌘↵ still submits (`onSubmitChord`).
 Everything the user authors in the popover — the cards, both dependency modes,
 Standalone, the Insert-before selection — is ONE `useDraft` record
 (`TaskDraftState`), so closing the popover or reloading keeps all of it and
-`resetForm` clears all of it. A new control adds a field there; a `useState`
+a successful submit clears all of it. A new control adds a field there; a `useState`
 for something the user chose is the bug this shape exists to prevent.
 
 A default is never copied into the draft, because the draft outlives the
@@ -94,9 +94,11 @@ label says which action a click will take.
 The footer holds "+ Follow-up task" (appends a card) on the left, then the
 host's `footerActions`, then "Launch" / "Launch N tasks" with its ⌘↵ hint. There
 is no Cancel: the header's ×, Esc and a click outside already close it. Header and footer actions are both handed a `TaskDraftActionDraft`: the
-drafted text, the page URL the draft is about, and `discard` (clear the draft
-and close) for an action that sent the request elsewhere (Wish's File on
-GitHub).
+drafted text and the page URL it shares (`pageUrl`: the page's URL only while
+every drafted card's URL capture is on, via `sharedPageUrl`, which asks the same
+`capturedPageUrl` the submit path asks; `null` otherwise). There is no
+`discard`: an action that sent the request elsewhere (Wish's File on GitHub)
+cannot know it was filed, so the draft stays until the user dismisses it.
 
 The composer alone is what the plugin exhibits (`exhibits/`, an `appExhibit`
 in the `plugin-meta/exhibits` catalog, id `task-draft/composer` — app, not

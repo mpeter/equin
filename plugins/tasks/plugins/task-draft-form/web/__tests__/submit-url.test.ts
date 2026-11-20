@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { FetchEndpoint } from "@plugins/infra/plugins/endpoints/web";
 import type { TaskChainSubmitBody } from "@plugins/tasks/core";
 import { asPluginId } from "@plugins/framework/plugins/plugin-id/core";
-import { submitChain } from "../internal/submit";
+import { sharedPageUrl, submitChain } from "../internal/submit";
 
 async function filedUrls(
   url: string | null,
@@ -53,5 +53,36 @@ describe("submitChain's URL", () => {
 
   it("attaches nothing for a draft about no page, whatever the toggle", async () => {
     expect(await filedUrls(null, true, true)).toEqual([undefined]);
+  });
+});
+
+describe("sharedPageUrl", () => {
+  const card = (text: string, includeUrl?: boolean) => ({
+    localId: text,
+    text,
+    options: {},
+    includeUrl,
+    linkedToPrev: false,
+  });
+
+  it("is the page's URL only while every drafted card captures it", () => {
+    expect(sharedPageUrl([card("a", true)], "http://x/", false)).toBe(
+      "http://x/",
+    );
+    expect(sharedPageUrl([card("a", false)], "http://x/", true)).toBeNull();
+    expect(
+      sharedPageUrl([card("a", true), card("b", false)], "http://x/", true),
+    ).toBeNull();
+  });
+
+  it("ignores blank cards and follows the default for untouched ones", () => {
+    expect(
+      sharedPageUrl([card("a"), card("  ", false)], "http://x/", true),
+    ).toBe("http://x/");
+    expect(sharedPageUrl([card("a")], "http://x/", false)).toBeNull();
+  });
+
+  it("is null for a draft about no page", () => {
+    expect(sharedPageUrl([card("a", true)], null, true)).toBeNull();
   });
 });

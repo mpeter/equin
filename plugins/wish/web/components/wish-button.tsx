@@ -78,13 +78,13 @@ export function WishButton() {
             </Fragment>
           ))
         }
-        footerActions={({ text, pageUrl, discard }) =>
+        footerActions={({ text, pageUrl }) =>
           footerActions.map((action) => (
             <Fragment key={action.id}>
               {renderIsolated(
                 WishSlots.FooterAction,
                 action as unknown as Contribution,
-                { draft: text, pageUrl, discard },
+                { draft: text, pageUrl },
               )}
             </Fragment>
           ))

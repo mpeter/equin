@@ -13,8 +13,12 @@ a "Filed from the Wish button in the equin app" note, titled from the wish's fir
 the repository's `Wish` label — the name must match the repository's exactly,
 and GitHub applies it only for a filer with triage rights (anyone else files
 unlabelled). It is a real `<a target="_blank">`: only the user's click opens
-GitHub. The click also clears the draft and closes the popover
-(`discard`), as a Launch does once it has filed. Disabled while the draft is
+GitHub. The click leaves the draft alone: opening a link says
+nothing about an issue having been filed, so the draft stays until the user
+dismisses it. With the draft's URL capture off, the page URL is left out of the
+link entirely — the `Page:` line and the `url` of each pick's `<ui-context>`
+tag (`omitPickUrls`); the tooltip previews the title, label and that choice.
+Disabled while the draft is
 empty.
 
 ## The environment lines

@@ -346,6 +346,7 @@ marker is *additive* alongside it; nothing here reads or writes it.
     - `UI_CONTEXT_RE`
     - `uiContextLabel`
     - `UiContextMetaSchema`
+    - `withoutUiContextUrl`
 - Test helpers:
   - Web: `@plugins/primitives/plugins/ui-context/web/testing`
     - `parseLineage` — Parse a serialized lineage back into nodes (outer→inner).

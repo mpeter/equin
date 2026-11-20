@@ -18,6 +18,12 @@ body are built from that, never from a raw tag. It splits with
 fence, or GitHub strips it as HTML, and the blank lines around the fence are
 what make GitHub render it inside `<details>`.
 
+**A draft that does not share its page sets `omitPickUrls`.** Each pick's tag
+carries the `url` of the page it was picked on, so leaving out the `Page:` line
+alone would still leak it; the flag drops that attribute (via the token owner's
+`withoutUiContextUrl`) from the readable text and the collapsed blocks, keeping
+the rest of each pick.
+
 **`buildIssueUrl` keeps the link under 7,500 characters** (GitHub rejects longer
 ones). A tag runs to several hundred characters, so the tags go before any word
 the user wrote. When the whole issue is too long, it gives up, in order:
@@ -36,7 +42,9 @@ repository; everyone else files unlabelled.
 
 - Description: GitHub new-issue links: buildIssueUrl turns a written request (its <ui-context> picks made readable, each raw tag kept in a collapsed block), the page it is about and the host's own note lines into a prefilled issues/new link held under GitHub's length cap.
 - Core:
-  - Uses: `primitives/ui-context.splitUiContext`
+  - Uses:
+    - `primitives/ui-context.splitUiContext`
+    - `primitives/ui-context.withoutUiContextUrl`
   - Exports (types):
     - `IssueDraft`
     - `IssuePick`

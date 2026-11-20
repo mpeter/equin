@@ -57,7 +57,7 @@ import { appendSnippet, type TaskDraftInsert } from "../insert-request";
  * Everything the user AUTHORS in the popover, persisted as ONE draft record so
  * closing the popover or reloading the page keeps all of it. Adding a control
  * to the form means adding its field here — there is no second place to keep
- * it, and `resetForm` clears the whole record, so it cannot forget one either.
+ * it, and a successful submit clears the whole record, so it cannot forget one either.
  *
  * Only user choices are stored, never a default copied in: a missing value
  * means "the default", resolved when read (a card's `includeUrl` / `options`,
@@ -202,7 +202,7 @@ export interface TaskDraftPopoverProps {
   /**
    * Actions drawn in the footer, before Launch — another place to
    * send the drafted request (Wish's File on GitHub). Handed the draft and the
-   * page it is about, and `discard` to clear and close once they have sent it.
+   * page it shares.
    */
   footerActions?: (draft: TaskDraftActionDraft) => ReactNode;
   /** The head card's placeholder — what this surface asks the user for. */
@@ -231,7 +231,6 @@ function TaskDraftFormContent({
   url,
   setOpen,
   closeAfterSubmit,
-  resetForm,
   submitDraft,
   relate,
   hasAmbientRelate,
@@ -259,7 +258,6 @@ function TaskDraftFormContent({
   url: string | null;
   setOpen: (next: boolean) => void;
   closeAfterSubmit: () => void;
-  resetForm: () => void;
   /** Send the draft through `send`; it clears once `send` resolves ok. */
   submitDraft: <R extends { ok: boolean }>(
     send: () => Promise<R>,
@@ -407,10 +405,6 @@ function TaskDraftFormContent({
       headerActions={headerActions}
       footerActions={footerActions}
       pageUrl={url}
-      onDiscard={() => {
-        resetForm();
-        setOpen(false);
-      }}
       placeholder={placeholder}
       headInsertRef={headInsertRef}
       hintAnchors={hintAnchors}
@@ -464,7 +458,7 @@ export function TaskDraftPopover({
   const draftBinding = useDraft(taskDraftStore, () => freshDraft(relate), {
     scope: draftScope(target),
   });
-  const [draft, setDraft, clearDraft, draftKept] = draftBinding;
+  const [draft, setDraft, , draftKept] = draftBinding;
   const patchDraft = useCallback<PatchDraft>(
     (patch) => setDraft((prev) => ({ ...prev, ...patch })),
     [setDraft],
@@ -596,10 +590,6 @@ export function TaskDraftPopover({
     if (controlledOpen !== keptOpen) keepOpen(controlledOpen);
   }, [controlledOpen, keptOpen, keepOpen, onOpenChange]);
 
-  const resetForm = () => {
-    clearDraft();
-    seenIdsRef.current = new Set();
-  };
   // A submit clears the draft only once the server took it, so a reload
   // while the chain is on its way keeps everything the user wrote.
   const submitDraft = async <R extends { ok: boolean }>(
@@ -635,7 +625,6 @@ export function TaskDraftPopover({
             url={url}
             setOpen={setOpen}
             closeAfterSubmit={closeAfterSubmit}
-            resetForm={resetForm}
             submitDraft={submitDraft}
             relate={relate}
             hasAmbientRelate={hasAmbientRelate}

@@ -21,6 +21,7 @@ export {
   UI_CONTEXT_FIELDS,
   UiContextMetaSchema,
   parseUiContext,
+  withoutUiContextUrl,
 } from "./internal/token";
 export type { UiContextSegment } from "./internal/split";
 export { splitUiContext } from "./internal/split";

@@ -1,4 +1,7 @@
-import { splitUiContext } from "@plugins/primitives/plugins/ui-context/core";
+import {
+  splitUiContext,
+  withoutUiContextUrl,
+} from "@plugins/primitives/plugins/ui-context/core";
 
 /**
  * GitHub rejects a new-issue link much past 8,000 characters, and the text is
@@ -19,6 +22,12 @@ export interface IssueDraft {
   text: string;
   /** The page the request is about, when it is about one. */
   pageUrl?: string;
+  /**
+   * Leave the `url` out of every pick's `<ui-context>` tag (the readable text
+   * and the collapsed blocks alike), for a draft that does not share its page.
+   * The rest of each pick stays.
+   */
+  omitPickUrls?: boolean;
   /**
    * The host's own lines, closing the body after the page — what the filing
    * surface adds about the request (a choice the user made, where it was filed
@@ -80,20 +89,24 @@ function fileName(source: string): string {
  * A tag the parser refuses is left as the characters typed — which is also how
  * the field draws it, so the issue says what the visitor saw.
  */
-export function readableIdea(text: string): ReadableIdea {
+export function readableIdea(
+  text: string,
+  { omitUrls = false }: { omitUrls?: boolean } = {},
+): ReadableIdea {
+  const redact = (raw: string) => (omitUrls ? withoutUiContextUrl(raw) : raw);
   const picks: IssuePick[] = [];
   const parts = splitUiContext(text).map((segment) => {
     switch (segment.kind) {
       case "text":
         return segment.text;
       case "malformed":
-        return segment.raw;
+        return redact(segment.raw);
       case "tag": {
         const { element, source } = segment.meta;
         const pick: IssuePick = {
           n: picks.length + 1,
           label: element,
-          tag: segment.raw,
+          tag: redact(segment.raw),
           ...(source ? { file: fileName(source) } : {}),
         };
         picks.push(pick);
@@ -258,7 +271,9 @@ function largestFitting(max: number, build: (n: number) => string): string {
  * cap (or the notes are), and a link GitHub would reject is not one to hand a visitor.
  */
 export function buildIssueUrl(draft: IssueDraft): string {
-  const idea = readableIdea(draft.text);
+  const idea = readableIdea(draft.text, {
+    omitUrls: draft.omitPickUrls === true,
+  });
   const text = idea.text.trim();
   const { picks } = idea;
   const title = titleOf(text);
