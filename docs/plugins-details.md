@@ -16726,8 +16726,8 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
 - **`config_v2`** — Reactive useConfig hook for reading typed JSONC config in the browser. Typed JSONC config handles for server plugins: the registry over the user-layer store (the ConfigStore host service) and the committed layer (ConfigGitLayer), its live values and the scope routes.
   - Web:
     - Slots: `ConfigV2.WebRegister`
-    - Slot contributors: 103 contributors — full list in [`plugins/config_v2/REFERENCE.md`](../plugins/config_v2/REFERENCE.md)
-      - `ConfigV2.WebRegister` ×103
+    - Slot contributors: 104 contributors — full list in [`plugins/config_v2/REFERENCE.md`](../plugins/config_v2/REFERENCE.md)
+      - `ConfigV2.WebRegister` ×104
     - Uses:
       - `infra/endpoints.useEndpointMutation`
       - `network/live.useLive`
@@ -16926,14 +16926,14 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
       - `validationIssues`
       - `withOverrideLegend`
   - Cross-plugin:
-    - Imported by: 153 plugins — full list in [`plugins/config_v2/REFERENCE.md`](../plugins/config_v2/REFERENCE.md)
+    - Imported by: 154 plugins — full list in [`plugins/config_v2/REFERENCE.md`](../plugins/config_v2/REFERENCE.md)
       - `apps` ×43
       - `debug` ×15
       - `conversations` ×14
       - `backup` ×12
       - `ui` ×11
+      - `tasks` ×9
       - `config_v2` ×8
-      - `tasks` ×8
       - `infra` ×7
       - `auth` ×6
       - `framework` ×5
@@ -30196,6 +30196,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `DynamicEnum.Options` ← `conversations.model-provider`
               - `DynamicEnum.Options` ← `fields.dynamic-enum.config`
               - `DynamicEnum.Options` ← `hints.ask`
+              - `DynamicEnum.Options` ← `tasks.auto-start.launch-option`
               - `DynamicEnum.Options` ← `tasks.automations`
               - `DynamicEnum.Options` ← `tasks.task-triage`
               - `DynamicEnum.Options` ← `ui.breadcrumb-separator`
@@ -30238,6 +30239,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `conversations/conversation-view/launch-prompts`
               - `conversations/model-provider`
               - `hints/ask`
+              - `tasks/auto-start/launch-option`
               - `tasks/automations`
               - `tasks/task-triage`
               - `ui/segmented-progress-bar`
@@ -43740,12 +43742,12 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `unresolved`
           - Cross-plugin:
             - Uses tokens: `ui/tokens/color-palette --destructive`
-            - Imported by: 321 plugins — full list in [`plugins/network/plugins/live/plugins/live-state/REFERENCE.md`](../plugins/network/plugins/live/plugins/live-state/REFERENCE.md)
+            - Imported by: 322 plugins — full list in [`plugins/network/plugins/live/plugins/live-state/REFERENCE.md`](../plugins/network/plugins/live/plugins/live-state/REFERENCE.md)
               - `apps` ×85
               - `conversations` ×50
               - `debug` ×31
+              - `tasks` ×26
               - `ui` ×26
-              - `tasks` ×25
               - `page` ×16
               - `primitives` ×16
               - `infra` ×11
@@ -62974,11 +62976,18 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
       - Plugins:
         - **`launch-option`** — Auto-start model picker as a launch option: the same controlled select on the task detail's Prompt card (bound to the task's row) and on the task-draft popover (bound to the draft card). Applies a drafted auto-start model to a newly created task: arms the launch (enqueuing immediately when nothing blocks it), only records the model when the host starts the task inline itself, or clears the marker when the draft says Off.
           - Web:
-            - Contributes: `TaskLaunch.Option` "Auto-start" → `AutoStartLaunchControl`
+            - Contributes:
+              - `ConfigV2.WebRegister` "config"
+              - `DynamicEnum.Options` "New draft default"
+              - `TaskLaunch.Option` "Auto-start" → `AutoStartLaunchControl`
             - Uses:
+              - `config_v2.ConfigV2`
+              - `config_v2.useConfigResult`
               - `conversations/model-provider.ModelChoiceLabel`
               - `conversations/model-provider.ModelSelect`
+              - `conversations/model-provider.useModelChoiceOptions`
               - `conversations/model-provider.useVisibleModels`
+              - `fields/dynamic-enum/config.DynamicEnum`
               - `infra/endpoints.useEndpointMutation`
               - `network/live.mapRow`
               - `network/live/live-state.combineResources`
@@ -62988,19 +62997,29 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `tasks/launch-options.TaskLaunch`
               - `tasks/tasks-core.useTaskAttempts`
           - Server:
-            - Contributes: `taskLaunchServer` "auto-start"
+            - Contributes:
+              - `ConfigV2.Register` "config"
+              - `taskLaunchServer` "auto-start"
             - Uses:
+              - `config_v2.ConfigV2`
               - `conversations/model-provider/catalog.getModelCatalog`
               - `tasks.armTaskAutoStart`
               - `tasks/auto-start.setTaskAutoStart`
               - `tasks/launch-options.TaskLaunchServer`
           - Core:
             - Uses:
+              - `config_v2.defineConfig`
               - `conversations/model-provider.DEFAULT_MODEL_CHOICE`
               - `conversations/model-provider.ModelChoice`
               - `conversations/model-provider.ModelChoiceSchema`
+              - `conversations/model-provider.normalizeModelChoice`
+              - `fields/dynamic-enum/config.dynamicEnumField`
               - `tasks/launch-options.defineLaunchOption`
-            - Exports (values): `autoStartLaunchOption`
+            - Exports (values):
+              - `AUTO_START_DRAFT_OFF`
+              - `autoStartConfig`
+              - `autoStartLaunchOption`
+              - `draftDefaultToValue`
           - Cross-plugin:
             - Imported by: `conversations/agent-thread`
     - **`automations`** — Automations in the agent manager: the Automations sidebar entry and list (a DataView over the catalog — trigger in words, next run, on/off, open task), the detail pane (Run now through Background activity; Behavior — enabled, model, push policy; Trigger — schedule presets or custom cron, or the event and its settle wait; the sections an automation contributes through Automations.Section; its sources; the Prompt template with Customized / Reset to default — PromptTemplateBlock, the same editor for any template field an automation declares; and the History of the tasks it filed or started — each row expandable into the Automations.TaskDetail contributions for its task), the presentation of the exposed `origin` Automation field (its options the live catalog) and `approval` Approval field (Approved / Excluded / Not approved) in every list whose rows reach a task, useTaskApproval / useSetTaskApproval — one task's launch decision, read and written from the task, and automationConfigContributions — how a declaring plugin registers its automation's config document (Automations.Config). Automations registry: defineAutomation declares something that files a task and launches its agent on its own (file kind) or launches agents on existing tasks a few at a time (launch kind: candidates, launched ONLY when a person approved them — the tasks_ext_launch_decision side-table, one decision per task whatever automation launches it, written by the decide-launch and task-approval endpoints alone — concurrency slots held until a task settles or its agent reports — the automations.slot code watcher on every launched task, fed the outcome report and the task's settled / stopped / held facts through the watch plugin —, and a maxLaunches batch per turn-on after which it turns itself off), and owns its job (automation.<id>) — its config document (defineAutomationConfig: enabled, push policy, model, excluded sources, trigger — a schedule re-installed live on change, or an event whose bursts settle into one run — and the prompt template), the one-open-task dedupe (and, for a file automation whose `watch` is refire, the automations.refire code watcher on each filed task, running it again as soon as that task settles), the filled prompt, the filing (task + category + tasks_ext_origin row in one transaction) and the armed launch. Serves the automations.launch-decisions.all set, exposes the filing automation and the launch decision to every list whose rows reach a task (the `origin` and `approval` fields), and notifies the bell when an automated task needs its person. The automations.catalog value and the automations.tasks collection (the origin side-table, an automation's history) are the machine half's.
@@ -63251,6 +63270,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `TaskLaunch.Option` ← `tasks.task-preprompt`
         - Uses:
           - `config_v2/config-link.useConfigLink`
+          - `network/live/live-state.combineResources`
           - `primitives/css/spacing.Stack`
           - `primitives/error-boundary.PluginErrorBoundary`
           - `primitives/overlay/overlay-boundary.OverlayBoundary`
@@ -63272,7 +63292,9 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `launchOptionValue`
           - `pickKnownOptions`
           - `TaskLaunch`
+          - `useDraftOptionDefaults`
           - `useLaunchOptionDefaults`
+          - `withDraftDefaults`
       - Server:
         - Uses: `infra/endpoints.HttpError`
         - Exports (types):
@@ -63299,6 +63321,8 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `tasks/task-effort`
           - `tasks/task-preprompt`
           - `wish`
+      - Exemptions:
+        - Exempts itself from: `react-compiler:no-silent-skips` — `web/internal/values.ts` (sanctioned)
       - Core:
         - Exports (types): `LaunchOptionDef`
         - Exports (values): `defineLaunchOption`
@@ -64630,9 +64654,9 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
         - Slots: `TaskDraftFormSlots.Action`
         - Slot contributors: `TaskDraftFormSlots.Action` ← `wish.element-picker`
         - Contributes: `ConfigV2.WebRegister` "config"
-        - Uses: 51 symbols — full list in [`plugins/tasks/plugins/task-draft-form/REFERENCE.md`](../plugins/tasks/plugins/task-draft-form/REFERENCE.md)
+        - Uses: 53 symbols — full list in [`plugins/tasks/plugins/task-draft-form/REFERENCE.md`](../plugins/tasks/plugins/task-draft-form/REFERENCE.md)
+          - `tasks/launch-options` ×7
           - `primitives/kept-state` ×6
-          - `tasks/launch-options` ×5
           - `infra/endpoints` ×3
           - `primitives/css/ui-kit` ×3
           - `primitives/shortcuts` ×3
@@ -68687,13 +68711,13 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
     - Contributes:
       - `ActionBar.Item` → `WishButton`
       - `PhoneActions.Action` "Wish" → `WishSheet`
-    - Uses: 27 symbols — full list in [`plugins/wish/REFERENCE.md`](../plugins/wish/REFERENCE.md)
+    - Uses: 29 symbols — full list in [`plugins/wish/REFERENCE.md`](../plugins/wish/REFERENCE.md)
       - `tasks/task-draft-form` ×8
+      - `tasks/launch-options` ×4
       - `primitives/css/ui-kit` ×3
       - `primitives/kept-state` ×3
       - `hints` ×2
       - `primitives/css/spacing` ×2
-      - `tasks/launch-options` ×2
       - `apps-core/phone-actions.PhoneActions`
       - `infra/endpoints.useFetchEndpoint`
       - `primitives/css/text.Text`

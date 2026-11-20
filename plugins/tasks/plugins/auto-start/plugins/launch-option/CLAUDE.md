@@ -10,11 +10,18 @@ A sub-plugin rather than part of `auto-start` itself: applying the option means
 
 - Description: Auto-start model picker as a launch option: the same controlled select on the task detail's Prompt card (bound to the task's row) and on the task-draft popover (bound to the draft card). Applies a drafted auto-start model to a newly created task: arms the launch (enqueuing immediately when nothing blocks it), only records the model when the host starts the task inline itself, or clears the marker when the draft says Off.
 - Web:
-  - Contributes: `TaskLaunch.Option` "Auto-start" → `AutoStartLaunchControl`
+  - Contributes:
+    - `ConfigV2.WebRegister` "config"
+    - `DynamicEnum.Options` "New draft default"
+    - `TaskLaunch.Option` "Auto-start" → `AutoStartLaunchControl`
   - Uses:
+    - `config_v2.ConfigV2`
+    - `config_v2.useConfigResult`
     - `conversations/model-provider.ModelChoiceLabel`
     - `conversations/model-provider.ModelSelect`
+    - `conversations/model-provider.useModelChoiceOptions`
     - `conversations/model-provider.useVisibleModels`
+    - `fields/dynamic-enum/config.DynamicEnum`
     - `infra/endpoints.useEndpointMutation`
     - `network/live.mapRow`
     - `network/live/live-state.combineResources`
@@ -24,19 +31,29 @@ A sub-plugin rather than part of `auto-start` itself: applying the option means
     - `tasks/launch-options.TaskLaunch`
     - `tasks/tasks-core.useTaskAttempts`
 - Server:
-  - Contributes: `taskLaunchServer` "auto-start"
+  - Contributes:
+    - `ConfigV2.Register` "config"
+    - `taskLaunchServer` "auto-start"
   - Uses:
+    - `config_v2.ConfigV2`
     - `conversations/model-provider/catalog.getModelCatalog`
     - `tasks.armTaskAutoStart`
     - `tasks/auto-start.setTaskAutoStart`
     - `tasks/launch-options.TaskLaunchServer`
 - Core:
   - Uses:
+    - `config_v2.defineConfig`
     - `conversations/model-provider.DEFAULT_MODEL_CHOICE`
     - `conversations/model-provider.ModelChoice`
     - `conversations/model-provider.ModelChoiceSchema`
+    - `conversations/model-provider.normalizeModelChoice`
+    - `fields/dynamic-enum/config.dynamicEnumField`
     - `tasks/launch-options.defineLaunchOption`
-  - Exports (values): `autoStartLaunchOption`
+  - Exports (values):
+    - `AUTO_START_DRAFT_OFF`
+    - `autoStartConfig`
+    - `autoStartLaunchOption`
+    - `draftDefaultToValue`
 - Cross-plugin:
   - Imported by: `conversations/agent-thread`
 

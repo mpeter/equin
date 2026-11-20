@@ -12,6 +12,8 @@ export type {
 } from "./slots";
 export {
   useLaunchOptionDefaults,
+  useDraftOptionDefaults,
+  withDraftDefaults,
   launchOptionValue,
   pickKnownOptions,
 } from "./internal/values";

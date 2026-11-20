@@ -1,15 +1,17 @@
 import type { ServerPluginDefinition } from "@plugins/framework/plugins/server-core/core";
+import { ConfigV2 } from "@plugins/config_v2/server";
 import { TaskLaunchServer } from "@plugins/tasks/plugins/launch-options/server";
 import { armTaskAutoStart } from "@plugins/tasks/server";
 import { setTaskAutoStart } from "@plugins/tasks/plugins/auto-start/server";
 import { assertChoiceLaunchable } from "@plugins/conversations/plugins/model-provider/core";
 import { getModelCatalog } from "@plugins/conversations/plugins/model-provider/plugins/catalog/server";
-import { autoStartLaunchOption } from "../core";
+import { autoStartConfig, autoStartLaunchOption } from "../core";
 
 export default {
   description:
     "Applies a drafted auto-start model to a newly created task: arms the launch (enqueuing immediately when nothing blocks it), only records the model when the host starts the task inline itself, or clears the marker when the draft says Off.",
   contributions: [
+    ConfigV2.Register({ descriptor: autoStartConfig }),
     TaskLaunchServer({
       def: autoStartLaunchOption,
       // The schema checks the id grammar; whether this machine can run the

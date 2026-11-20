@@ -9,7 +9,11 @@ import { Stack } from "@plugins/primitives/plugins/css/plugins/spacing/web";
 import { useConfigLink } from "@plugins/config_v2/plugins/config-link/web";
 import { symbol } from "@plugins/ui/plugins/icons/core";
 import { TaskLaunch } from "../slots";
-import { launchOptionValue, type LaunchOptionValues } from "../internal/values";
+import {
+  launchOptionValue,
+  withDraftDefaults,
+  type LaunchOptionValues,
+} from "../internal/values";
 
 const settingsIcon = symbol("settings");
 
@@ -41,6 +45,11 @@ export interface LaunchOptionPillsProps {
    * offered a choice the host will not honour.
    */
   omit?: readonly string[];
+  /**
+   * Configured seeds for a draft card (`useDraftOptionDefaults`), in place of
+   * each option's `def.defaultValue` for the values shown and the changed tint.
+   */
+  defaults?: LaunchOptionValues;
 }
 
 /**
@@ -64,15 +73,13 @@ export function LaunchOptionPills({
   disabled,
   side,
   omit,
+  defaults,
 }: LaunchOptionPillsProps) {
   const options = TaskLaunch.Option.useContributions();
-  const groups = useMemo(
-    () =>
-      groupOptions(
-        omit ? options.filter((o) => !omit.includes(o.id)) : options,
-      ),
-    [options, omit],
-  );
+  const groups = useMemo(() => {
+    const shown = omit ? options.filter((o) => !omit.includes(o.id)) : options;
+    return groupOptions(defaults ? withDraftDefaults(shown, defaults) : shown);
+  }, [options, omit, defaults]);
   return (
     <>
       {groups

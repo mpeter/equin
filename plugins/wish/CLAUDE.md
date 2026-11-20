@@ -17,13 +17,13 @@
   - Contributes:
     - `ActionBar.Item` → `WishButton`
     - `PhoneActions.Action` "Wish" → `WishSheet`
-  - Uses: 27 symbols — full list in [REFERENCE.md](./REFERENCE.md)
+  - Uses: 29 symbols — full list in [REFERENCE.md](./REFERENCE.md)
     - `tasks/task-draft-form` ×8
+    - `tasks/launch-options` ×4
     - `primitives/css/ui-kit` ×3
     - `primitives/kept-state` ×3
     - `hints` ×2
     - `primitives/css/spacing` ×2
-    - `tasks/launch-options` ×2
     - `apps-core/phone-actions.PhoneActions`
     - `infra/endpoints.useFetchEndpoint`
     - `primitives/css/text.Text`

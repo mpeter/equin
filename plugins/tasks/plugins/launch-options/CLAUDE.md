@@ -50,6 +50,7 @@ Ordering for both surfaces lives in
     - `TaskLaunch.Option` ← `tasks.task-preprompt`
   - Uses:
     - `config_v2/config-link.useConfigLink`
+    - `network/live/live-state.combineResources`
     - `primitives/css/spacing.Stack`
     - `primitives/error-boundary.PluginErrorBoundary`
     - `primitives/overlay/overlay-boundary.OverlayBoundary`
@@ -71,7 +72,9 @@ Ordering for both surfaces lives in
     - `launchOptionValue`
     - `pickKnownOptions`
     - `TaskLaunch`
+    - `useDraftOptionDefaults`
     - `useLaunchOptionDefaults`
+    - `withDraftDefaults`
 - Server:
   - Uses: `infra/endpoints.HttpError`
   - Exports (types):
@@ -98,6 +101,8 @@ Ordering for both surfaces lives in
     - `tasks/task-effort`
     - `tasks/task-preprompt`
     - `wish`
+- Exemptions:
+  - Exempts itself from: `react-compiler:no-silent-skips` — `web/internal/values.ts` (sanctioned)
 - Core:
   - Exports (types): `LaunchOptionDef`
   - Exports (values): `defineLaunchOption`

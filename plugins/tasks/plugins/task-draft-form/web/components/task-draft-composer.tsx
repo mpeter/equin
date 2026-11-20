@@ -6,6 +6,7 @@ import {
 } from "@plugins/primitives/plugins/text-editor/plugins/composer/web";
 import {
   LaunchOptionPills,
+  useDraftOptionDefaults,
   type LaunchOptionValues,
 } from "@plugins/tasks/plugins/launch-options/web";
 import { IconButton } from "@plugins/primitives/plugins/icon-button/web";
@@ -98,6 +99,12 @@ export function TaskDraftComposer({
   const text = Array.isArray(keep) ? keep[0] : (keep as KeptText).value;
   const localInsertRef = useRef<((snippet: string) => void) | null>(null);
   const insertRef = hostInsertRef ?? localInsertRef;
+  // The configured seeds of a fresh card. Until they are known the pills are
+  // not drawn: a pill would show (and let the user keep) a value that is not
+  // the one the card will start with.
+  const draftDefaults = useDraftOptionDefaults();
+  const defaults =
+    draftDefaults.status === "ready" ? draftDefaults.data : undefined;
   const insertText = (snippet: string) => {
     const insert = insertRef.current;
     if (!insert) throw new Error("TaskDraftComposer: editor not mounted");
@@ -125,6 +132,7 @@ export function TaskDraftComposer({
           includeUrl={includeUrl}
           onToggleUrl={onToggleUrl}
           values={launchOptions}
+          defaults={defaults}
           onChange={onLaunchOptionsChange}
           disabled={disabled}
           relate={relate}
@@ -132,12 +140,15 @@ export function TaskDraftComposer({
       }
       barEnd={
         <>
-          <LaunchOptionPills
-            side="end"
-            values={launchOptions}
-            onChange={onLaunchOptionsChange}
-            disabled={disabled}
-          />
+          {defaults && (
+            <LaunchOptionPills
+              side="end"
+              values={launchOptions}
+              defaults={defaults}
+              onChange={onLaunchOptionsChange}
+              disabled={disabled}
+            />
+          )}
           {submit && (
             <IconButton
               icon={launchIcon}
@@ -171,6 +182,7 @@ function CardBarStart({
   includeUrl,
   onToggleUrl,
   values,
+  defaults,
   onChange,
   disabled,
   relate,
@@ -179,6 +191,7 @@ function CardBarStart({
   includeUrl: boolean;
   onToggleUrl: (v: boolean) => void;
   values: LaunchOptionValues;
+  defaults: LaunchOptionValues | undefined;
   onChange: (next: LaunchOptionValues) => void;
   disabled: boolean;
   relate: TaskDraftComposerProps["relate"];
@@ -200,12 +213,15 @@ function CardBarStart({
         />
       )}
       <ComposerRule />
-      <LaunchOptionPills
-        side="start"
-        values={values}
-        onChange={onChange}
-        disabled={disabled}
-      />
+      {defaults && (
+        <LaunchOptionPills
+          side="start"
+          values={values}
+          defaults={defaults}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      )}
       {relate && (
         <DependencyPill
           value={relate.value}

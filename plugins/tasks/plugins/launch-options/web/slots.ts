@@ -146,6 +146,14 @@ export interface TaskLaunchOption<V> {
    */
   useTaskBinding?: Hook<(taskId: string) => LaunchBinding<V>>;
   /**
+   * What a fresh DRAFT card starts on when that is a setting rather than
+   * `def.defaultValue` (which stays the committed origin value). A resource
+   * result, so a not-yet-known setting is a loading state the draft surface
+   * waits on, never a stand-in value. Omit it and the option seeds from
+   * `def.defaultValue`. Task detail and launch surfaces never read it.
+   */
+  useDraftDefault?: Hook<() => ResourceResult<V>>;
+  /**
    * Short value description, folded into the post-submit notification's
    * developer detail.
    */

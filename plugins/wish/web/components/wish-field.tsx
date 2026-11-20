@@ -16,6 +16,8 @@ import {
 } from "@plugins/tasks/plugins/task-draft-form/web";
 import {
   TaskLaunch,
+  useDraftOptionDefaults,
+  withDraftDefaults,
   type LaunchOptionValues,
 } from "@plugins/tasks/plugins/launch-options/web";
 import {
@@ -104,13 +106,19 @@ export function WishField({ filedFrom }: { filedFrom: PluginId }) {
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>({ kind: "idle" });
   const fetchEndpoint = useFetchEndpoint();
-  const launchOptions = TaskLaunch.Option.useContributions();
+  const registeredOptions = TaskLaunch.Option.useContributions();
+  const draftDefaults = useDraftOptionDefaults();
   const captureUrlDefault = useCaptureUrlDefault();
   const page = useDraftPage();
 
   const submit = async () => {
     const trimmed = text.trim();
-    if (!trimmed || submitting) return;
+    // The card seeds from the configured defaults: not known yet, nothing to file.
+    if (!trimmed || submitting || draftDefaults.status !== "ready") return;
+    const launchOptions = withDraftDefaults(
+      registeredOptions,
+      draftDefaults.data,
+    );
     setSubmitting(true);
     try {
       // Both drafts clear only once the server took the wish: a reload while

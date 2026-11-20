@@ -47,7 +47,11 @@ import {
   type TaskChainRelateMode,
   type TaskChainTarget,
 } from "@plugins/tasks/core";
-import { TaskLaunch } from "@plugins/tasks/plugins/launch-options/web";
+import {
+  TaskLaunch,
+  useDraftOptionDefaults,
+  withDraftDefaults,
+} from "@plugins/tasks/plugins/launch-options/web";
 import { useActiveRelateContext } from "../active-relate-context";
 import { useCaptureUrlDefault } from "../use-capture-url-default";
 import { useDraftPage } from "../draft-page";
@@ -328,12 +332,18 @@ function TaskDraftFormContent({
   const captureUrlDefault = useCaptureUrlDefault();
   // The live launch-option registry: reading it is a hook, so it happens here
   // and `submitChain` / `describeOutcome` stay pure over an explicit list.
-  const launchOptions = TaskLaunch.Option.useContributions();
+  const registeredOptions = TaskLaunch.Option.useContributions();
+  const draftDefaults = useDraftOptionDefaults();
   const fetchEndpoint = useFetchEndpoint();
   const toast = useToast();
 
   const submit = async () => {
-    if (submitting) return;
+    // Cards seed from the configured defaults: not known yet, nothing to file.
+    if (submitting || draftDefaults.status !== "ready") return;
+    const launchOptions = withDraftDefaults(
+      registeredOptions,
+      draftDefaults.data,
+    );
     setSubmitting(true);
     try {
       const insertBefore =

@@ -1,7 +1,9 @@
 import type { PluginDefinition } from "@plugins/framework/plugins/web-sdk/core";
 import { TaskLaunch } from "@plugins/tasks/plugins/launch-options/web";
 import { choiceLabel } from "@plugins/conversations/plugins/model-provider/core";
-import { autoStartLaunchOption } from "../core";
+import { ConfigV2 } from "@plugins/config_v2/web";
+import { DynamicEnum } from "@plugins/fields/plugins/dynamic-enum/plugins/config/web";
+import { autoStartConfig, autoStartLaunchOption } from "../core";
 import { AutoStartLaunchControl } from "./components/auto-start-control";
 import {
   AutoStartPillValue,
@@ -9,12 +11,21 @@ import {
   AUTO_START_OFF_LABEL,
 } from "./components/auto-start-pill";
 import { useTaskAutoStartBinding } from "./internal/binding";
+import {
+  useAutoStartDraftDefault,
+  useAutoStartDraftOptions,
+} from "./internal/draft-default";
 import { symbol } from "@plugins/ui/plugins/icons/core";
 
 export default {
   description:
     "Auto-start model picker as a launch option: the same controlled select on the task detail's Prompt card (bound to the task's row) and on the task-draft popover (bound to the draft card).",
   contributions: [
+    ConfigV2.WebRegister({ descriptor: autoStartConfig }),
+    DynamicEnum.Options({
+      field: autoStartConfig.fields.draftDefault,
+      useOptions: useAutoStartDraftOptions,
+    }),
     TaskLaunch.Option({
       id: autoStartLaunchOption.id,
       label: "Auto-start",
@@ -36,6 +47,7 @@ export default {
         side: "end",
       },
       useTaskBinding: useTaskAutoStartBinding,
+      useDraftDefault: useAutoStartDraftDefault,
       summarize: (model) => (model ? choiceLabel(model) : null),
       // A model chosen = an agent launches on it (now or once unblocked).
       startsConversation: (model) => model !== null,

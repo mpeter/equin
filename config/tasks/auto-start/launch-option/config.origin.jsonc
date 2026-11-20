@@ -1,0 +1,5 @@
+// @hash 39f4f92ec3d8
+{
+  // What a new task draft (the Wish popover, a fresh draft card) starts with in its Auto-start pill. Off leaves a quick note for you to launch yourself; a model launches an agent with it as soon as the task is filed.
+  "draftDefault": "opus"
+}
