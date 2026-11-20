@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { EventDate } from "@plugins/apps/plugins/events/plugins/event-date/core";
+import { eventDayFloor } from "@plugins/apps/plugins/events/plugins/event-date/core";
 import { planReanchor } from "./plan-reanchor";
 
 // The re-anchor decision is pure, so "what does this weekly series say next
@@ -108,5 +109,49 @@ describe("planReanchor", () => {
       planReanchor(once, at("2026-08-01T20:00:00Z"), at("2026-09-08T00:00:00Z"))
         .kind,
     ).toBe("keep");
+  });
+});
+
+describe("planReanchor for an all-day series, west of UTC", () => {
+  const zone = process.env.TZ;
+  beforeAll(() => {
+    process.env.TZ = "America/New_York";
+  });
+  afterAll(() => {
+    if (zone === undefined) delete process.env.TZ;
+    else process.env.TZ = zone;
+  });
+
+  const tuesdays: EventDate = {
+    kind: "recurring",
+    startsAt: at("2026-09-01T00:00:00Z"),
+    allDay: true,
+    rule: { freq: "weekly", interval: 1, byWeekday: ["tu"] },
+  };
+
+  test("keeps today's occurrence on the day it runs", () => {
+    // 10:30 on Tue 1 Sep in New York. Resolving from local midnight (04:00Z)
+    // would sit after the stored 00:00Z occurrence and push it a week out.
+    const now = at("2026-09-01T14:30:00Z");
+    const plan = planReanchor(
+      tuesdays,
+      at("2026-09-01T00:00:00Z"),
+      eventDayFloor(now, true),
+    );
+    expect(plan.kind).toBe("keep");
+  });
+
+  test("moves to the next Tuesday the day after", () => {
+    const now = at("2026-09-02T14:30:00Z");
+    const plan = planReanchor(
+      tuesdays,
+      at("2026-09-01T00:00:00Z"),
+      eventDayFloor(now, true),
+    );
+    expect(plan.kind).toBe("move");
+    if (plan.kind !== "move") throw new Error("expected a move");
+    expect(plan.occurrence.startsAt.toISOString()).toBe(
+      "2026-09-08T00:00:00.000Z",
+    );
   });
 });

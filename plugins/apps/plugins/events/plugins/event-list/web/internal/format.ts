@@ -1,5 +1,7 @@
+import { eventCalendarDay } from "@plugins/apps/plugins/events/plugins/event-date/core";
 import { canParseUrl } from "@plugins/packages/plugins/floor-compat/core";
-// Pure display formatters for an event row. Local-calendar (never UTC) and
+// Pure display formatters for an event row. A timed event reads in the viewer's
+// local calendar; an all-day event reads its own date (see `eventCalendarDay`). And
 // locale-pinned to fixed English abbreviations so the output is deterministic
 // and unit-testable — the app is English-only today, and `toLocaleString` would
 // make both the tests and the row width depend on the host locale.
@@ -35,11 +37,10 @@ export function formatEventWhen(
   now: Date = new Date(),
 ): string {
   if (Number.isNaN(startsAt.getTime())) return "";
-  const day = `${WEEKDAYS[startsAt.getDay()]} ${startsAt.getDate()} ${MONTHS[startsAt.getMonth()]}`;
-  const withYear =
-    startsAt.getFullYear() === now.getFullYear()
-      ? day
-      : `${day} ${startsAt.getFullYear()}`;
+  // An all-day event's date is its UTC date, not the viewer's local one.
+  const cal = eventCalendarDay(startsAt, allDay);
+  const day = `${WEEKDAYS[cal.weekday]} ${cal.day} ${MONTHS[cal.month]}`;
+  const withYear = cal.year === now.getFullYear() ? day : `${day} ${cal.year}`;
   if (allDay) return withYear;
   return `${withYear} · ${pad2(startsAt.getHours())}:${pad2(startsAt.getMinutes())}`;
 }

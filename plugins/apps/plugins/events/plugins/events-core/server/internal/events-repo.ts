@@ -5,6 +5,7 @@ import {
   type AtomicWrite,
 } from "@plugins/database/server";
 import type { RunEventAction } from "../../core";
+import { eventDayFloor } from "@plugins/apps/plugins/events/plugins/event-date/core";
 import { planReanchor } from "./plan-reanchor";
 import { _events } from "./tables";
 
@@ -179,13 +180,6 @@ export interface ReanchorResult {
   exhausted: number;
 }
 
-/** Start of `t`'s LOCAL day — the granularity every date filter compares at. */
-function startOfLocalDay(t: Date): Date {
-  const d = new Date(t);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 /** Rows moved per statement: 4 bind parameters each, well under 65,535. */
 const REANCHOR_MOVES_PER_STATEMENT = 1_000;
 
@@ -238,7 +232,9 @@ export async function reanchorRecurringEvents(
   // filters this column feeds compare at. An occurrence that started earlier
   // today is still today's, so resolving at the wall clock instead would skip it
   // and hide a series from the day it is running on.
-  const today = startOfLocalDay(now);
+  // Per row, on the row's own axis: an all-day series is stored at UTC midnight
+  // of its date, so its "today" is UTC midnight of the local calendar date —
+  // local midnight would sit hours after today's occurrence and skip it.
 
   const rows = await db
     .select({
@@ -256,7 +252,11 @@ export async function reanchorRecurringEvents(
 
   const moves: AtomicWrite[] = [];
   for (const row of rows) {
-    const plan = planReanchor(row.date, row.startsAt, today);
+    const plan = planReanchor(
+      row.date,
+      row.startsAt,
+      eventDayFloor(now, row.date.allDay ?? false),
+    );
     if (plan.kind === "over") {
       exhausted += 1;
       continue;

@@ -4375,6 +4375,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
         - **`event-date`** — The event date format: a schema that states a recurrence once, its pure expander, its human label, its anchor-independent identity key, and the prompt fragment that documents it to the model — one folder so spec, parser and expander cannot drift.
           - Cross-plugin:
             - Imported by:
+              - `apps/events/event-list`
               - `apps/events/events-core`
               - `apps/events/refresh`
               - `apps/events/sources/salsanueva`
@@ -4382,6 +4383,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - Core:
             - Exports (types):
               - `AnchorResolution`
+              - `CalendarDay`
               - `EventDate`
               - `EventDateProjection`
               - `EventOccurrence`
@@ -4392,9 +4394,11 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
             - Exports (values):
               - `describeEventDate`
               - `EVENT_DATE_PROMPT_SPEC`
+              - `eventCalendarDay`
               - `eventDateIdentityKey`
               - `eventDateProjection`
               - `EventDateSchema`
+              - `eventDayFloor`
               - `expandEventDate`
               - `MAX_EXPANDED_OCCURRENCES`
               - `nextOccurrence`

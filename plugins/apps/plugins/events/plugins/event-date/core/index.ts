@@ -24,3 +24,8 @@ export {
 } from "./internal/describe";
 export { eventDateIdentityKey } from "./internal/identity";
 export { EVENT_DATE_PROMPT_SPEC } from "./internal/prompt-spec";
+export {
+  eventCalendarDay,
+  eventDayFloor,
+  type CalendarDay,
+} from "./internal/calendar-day";
