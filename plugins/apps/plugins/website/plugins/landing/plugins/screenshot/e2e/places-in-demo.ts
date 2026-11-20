@@ -29,7 +29,7 @@
  *     available;
  *  5. switches the embed to the Desktop, opens Places as a window from the
  *     shelf's launcher, takes it full screen, and comes back through the
- *     Layout control.
+ *     embed's launcher, "Back to Desktop".
  *
  * And asserts, throughout, that nothing left the scope — the demo's rule (`internal/page-origin.ts`, this plugin's CLAUDE.md): no
  * page-origin `/api/…` request issued from inside the demo, every one
@@ -49,8 +49,10 @@
  */
 import type { Locator, Page, WebSocket } from "playwright";
 import { pickFromLauncher } from "@plugins/apps-core/plugins/app-launcher/e2e";
-import { shownWindowIds } from "@plugins/apps/plugins/desktop/plugins/windows/e2e";
-import { pickSurfaceMode } from "@plugins/apps-core/plugins/surface/e2e";
+import {
+  openBackToDesktop,
+  shownWindowIds,
+} from "@plugins/apps/plugins/desktop/plugins/windows/e2e";
 import { externalHosts } from "@plugins/apps/plugins/website/plugins/demos/plugins/workspace/core";
 import { DEMO_PLACES } from "@plugins/apps/plugins/website/plugins/demos/plugins/workspace/plugins/story/core";
 import { densestPinIds } from "@plugins/map/core";
@@ -460,17 +462,16 @@ await withBrowser(async (h) => {
     (n) => n > 0,
   );
   await snap(page, OUT, "5-full-screen");
-  // The Layout control is the page's action bar: main's, never the
-  // website's (its page has none).
-  if (!SITE) {
-    // The popover's glyphs are the page's own chrome (attributed `page`).
-    await pickSurfaceMode(page, "Desktop");
-    await renders(
-      "the Layout control returns to the desktop",
-      () => shownWindowIds(embedRoot(page)),
-      (ids) => ids.length >= 1,
-    );
-  }
+  // The embed's own launcher: "Back to Desktop" leaves full screen here on
+  // main and on the website's demo alike (the page's action bar is not needed).
+  const way = await openBackToDesktop(embedRoot(page));
+  await way.back.click();
+  await way.close();
+  await renders(
+    "Back to Desktop returns to the desktop",
+    () => shownWindowIds(embedRoot(page)),
+    (ids) => ids.length >= 1,
+  );
   r.ok("the page stays on the demo", onPage(page.url()), page.url());
 
   page.off("websocket", onSocket);

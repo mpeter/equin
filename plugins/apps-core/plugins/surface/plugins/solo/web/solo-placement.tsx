@@ -26,9 +26,10 @@ export const soloDef: PlacementDef = {
   id: "solo",
   label: "Fullscreen (solo)",
   icon: fullscreenIcon,
-  // The boot mode: a fresh session opens one app edge to edge. The mode control
-  // (the action bar's Layout view option) is the only way out — no Esc
-  // shortcut: Esc closes whatever is open, and leaving solo by accident confuses.
+  // The boot mode: a fresh session opens one app edge to edge. The way out is
+  // the mode control (the action bar's Layout view option) or the launcher's
+  // "Back to Desktop" — no Esc shortcut: Esc closes whatever is open, and
+  // leaving solo by accident confuses.
   default: true,
   frame: "viewport",
   // A single app fills the viewport, so the document's light/dark and canvas

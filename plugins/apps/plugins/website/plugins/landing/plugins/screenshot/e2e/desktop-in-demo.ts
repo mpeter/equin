@@ -13,8 +13,8 @@
  *  3. takes a window full screen from its titlebar's Full screen
  *     control (as on the real desktop): the windows give way to that one tab,
  *     filling the embed box — the embed is its tab set's viewport — and the
- *     page stays as it was; the Layout control brings the desktop back, both
- *     windows intact;
+ *     page stays as it was; the embed's launcher, "Back to Desktop", brings the
+ *     desktop back, both windows intact;
  *  3b. right-clicks the empty desktop and changes the wallpaper through
  *     "Change wallpaper…" — an imperative dialog, rendered in the embed's own
  *     render origin, so the picker reads and writes the scope's config (the
@@ -33,8 +33,10 @@
  */
 import type { Locator, Page, WebSocket } from "playwright";
 import { pickFromLauncher } from "@plugins/apps-core/plugins/app-launcher/e2e";
-import { shownWindowIds } from "@plugins/apps/plugins/desktop/plugins/windows/e2e";
-import { pickSurfaceMode } from "@plugins/apps-core/plugins/surface/e2e";
+import {
+  openBackToDesktop,
+  shownWindowIds,
+} from "@plugins/apps/plugins/desktop/plugins/windows/e2e";
 import {
   arg,
   pathUrl,
@@ -244,7 +246,7 @@ await withBrowser(async (h) => {
   r.ok("the page stays on the demo", onDemoPage(page.url()), page.url());
   await snap(page, OUT, "2-two-windows");
 
-  // ── 3. Full screen from a window's titlebar, the Layout control back ──────
+  // ── 3. Full screen from a window's titlebar, the launcher's Back to Desktop ──
   const fullScreen = embedRoot(page).getByRole("button", {
     name: "Full screen",
   });
@@ -294,10 +296,12 @@ await withBrowser(async (h) => {
   );
   r.ok("the page stays on the demo", onDemoPage(page.url()), page.url());
   await snap(page, OUT, "3-full-screen");
-  // The page's own View options popover: its glyphs are the page's chrome.
-  await pickSurfaceMode(page, "Desktop");
+  // The embed's own launcher: "Back to Desktop" leaves full screen.
+  const way = await openBackToDesktop(embedRoot(page));
+  await way.back.click();
+  await way.close();
   await renders(
-    "the Layout control returns to the desktop with both windows",
+    "Back to Desktop returns to the desktop with both windows",
     () => shownWindowIds(embedRoot(page)),
     (ids) => ids.length === 2 && both.value.every((id) => ids.includes(id)),
   );

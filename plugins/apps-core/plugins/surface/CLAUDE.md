@@ -47,7 +47,6 @@
     - `apps-core/surface/docked`
     - `apps-core/surface/solo`
     - `apps/desktop/windows`
-    - `apps/website/landing/screenshot`
 - Exemptions:
   - Exempts itself from: `react-compiler:no-silent-skips` — `web/internal/use-tab-presence.ts` (debt)
 - Sub-plugins:
