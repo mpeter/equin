@@ -26,7 +26,7 @@ import { restateByMetadata } from "@plugins/shell/plugins/notifications/server";
 import { _reports } from "@plugins/reports/server";
 import { fixStandingOf, type ReportId } from "@plugins/reports/core";
 import { reportsProducer } from "./producer";
-import { _reportFixes } from "./tables";
+import { _reportFixes, _unknownFixClaims } from "./tables";
 import {
   placeableFixClaims,
   readFixClaims,
@@ -164,7 +164,8 @@ async function unrecordedClaims(
  * each newly claimed report; answers how many were new. A claim naming a
  * report this database does not hold is a broken assumption — push validates
  * the id against main's reports — so it is filed as a server error, not
- * dropped in silence, and the rest still land.
+ * dropped in silence, and the rest still land. Filed once (`fileUnknownClaims`):
+ * the ingest re-reads it on every boot and every advance of main.
  *
  * A new claim is first judged against the occurrences the report already
  * recorded (`recordedRegression`): a fix claimed for a commit main has run for
@@ -190,13 +191,10 @@ export async function recordFixClaims(
         )
     ).map((r) => r.id),
   );
-  for (const c of claims) {
-    if (known.has(c.reportId)) continue;
-    reportServerError({
-      message: `[reports] commit ${(c.claimedBy ?? c.commit).slice(0, 12)} on main names report ${c.reportId} (${c.claimedBy === undefined ? "Fixes-report" : "Report-fixed-by"}), which main's database does not hold`,
-      errorType: "UnknownFixedReport",
-    });
-  }
+  await fileUnknownClaims(
+    claims.filter((c) => !known.has(c.reportId)),
+    conn,
+  );
   const landed = claims
     .filter((c) => known.has(c.reportId))
     .map(({ reportId, commit, landedAt }) => ({ reportId, commit, landedAt }));
@@ -222,6 +220,37 @@ export async function recordFixClaims(
       );
   }
   return inserted.length;
+}
+
+/**
+ * File each claim in `unknown` (naming a report this database does not hold)
+ * the first time it is seen: the row written to `report_fix_unknown_claims`
+ * is what files it, so a re-read — or a concurrent ingest — files nothing.
+ */
+async function fileUnknownClaims(
+  unknown: readonly FixClaim[],
+  conn: NodePgDatabase,
+): Promise<void> {
+  if (unknown.length === 0) return;
+  const firstSeen = new Set(
+    (
+      await conn
+        .insert(_unknownFixClaims)
+        .values(unknown.map(({ reportId, commit }) => ({ reportId, commit })))
+        .onConflictDoNothing()
+        .returning({
+          reportId: _unknownFixClaims.reportId,
+          commit: _unknownFixClaims.commit,
+        })
+    ).map((r) => `${r.reportId}\0${r.commit}`),
+  );
+  for (const c of unknown) {
+    if (!firstSeen.delete(`${c.reportId}\0${c.commit}`)) continue;
+    reportServerError({
+      message: `[reports] commit ${(c.claimedBy ?? c.commit).slice(0, 12)} on main names report ${c.reportId} (${c.claimedBy === undefined ? "Fixes-report" : "Report-fixed-by"}), which main's database does not hold`,
+      errorType: "UnknownFixedReport",
+    });
+  }
 }
 
 /**

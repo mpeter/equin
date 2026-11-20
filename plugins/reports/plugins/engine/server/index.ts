@@ -17,7 +17,7 @@ import {
 } from "./internal/process-hooks";
 import { fatalReportHandler, serverReportHandler } from "./internal/fatal";
 import { RestartSkip } from "@plugins/build/plugins/restart-skip/plugins/hooks/server";
-import { _reportFixes } from "./internal/tables";
+import { _reportFixes, _unknownFixClaims } from "./internal/tables";
 import {
   fixClaimsReaction,
   ingestFixClaims,
@@ -85,6 +85,11 @@ export default {
       table: _reportFixes,
       reason:
         "Fixes of main's reports, recorded from main's history and main's deploys; a fork holds none of those reports.",
+    }),
+    ExcludeFromFork({
+      table: _unknownFixClaims,
+      reason:
+        "Which of main's fix claims main has already filed as naming no report it holds; a fork ingests no claims.",
     }),
     // A deploy adopted without a restart runs the new commit too: the fixes
     // it contains are live (`stampDeployedFixes`).

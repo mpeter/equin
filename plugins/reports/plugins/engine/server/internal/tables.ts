@@ -5,6 +5,8 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { parsedText } from "@plugins/database/plugins/sql-column/server";
+import { storedIdSchema } from "@plugins/ids/core";
 import { idRef } from "@plugins/ids/server";
 import { reportIdKind } from "@plugins/reports/core";
 import { _reports } from "@plugins/reports/server";
@@ -50,4 +52,22 @@ export const _reportFixes = pgTable(
     primaryKey({ columns: [t.reportId, t.commit] }),
     index("report_fixes_landed_idx").on(t.landedAt),
   ],
+);
+
+// The claims on main naming a report this database does not hold — keyed like
+// `report_fixes`, which cannot take them (its report id references `reports`).
+// The ingest re-reads main's claims on every boot and every advance of main, so
+// one is filed as a server error when its row is first written here and never
+// again. Most are upstream's: a fork carries upstream's history, whose trailers
+// name upstream's reports. Main's only, like `report_fixes`.
+export const _unknownFixClaims = pgTable(
+  "report_fix_unknown_claims",
+  {
+    reportId: parsedText("report_id", storedIdSchema(reportIdKind)).notNull(),
+    commit: text("commit").notNull(),
+    filedAt: timestamp("filed_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.reportId, t.commit] })],
 );

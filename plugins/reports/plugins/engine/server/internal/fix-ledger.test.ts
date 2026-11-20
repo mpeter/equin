@@ -10,7 +10,15 @@
  * (requires the running embedded cluster — `./equin build` first).
  */
 
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,7 +30,12 @@ import {
 } from "@plugins/database/plugins/db-test-fixture/server/testing";
 import { runMigrations } from "@plugins/database/plugins/migrations/server/testing";
 import { mountProducersForTest } from "@plugins/network/plugins/live/plugins/change-feed/server/testing";
-import { collectContributions } from "@plugins/framework/plugins/server-core/core";
+import {
+  collectContributions,
+  serverErrorSink,
+  sinkHandler,
+  type ServerErrorReport,
+} from "@plugins/framework/plugins/server-core/core";
 import { clearCollectedContributions } from "@plugins/framework/plugins/server-core/core/testing";
 import { runGit } from "@plugins/primitives/plugins/commit-list/server";
 import { _notifications } from "@plugins/shell/plugins/notifications/server";
@@ -302,6 +315,54 @@ describe("fix ledger (real DB)", () => {
         regressedAt: first,
         regressedCommit: later,
       });
+    });
+  });
+
+  // Every boot and every advance of main re-reads main's claims; a claim
+  // naming a report this database does not hold (upstream's, merged into a
+  // fork) was filed again on each — 364 claims, 5,113 filings on 2026-11-19.
+  describe("a claim naming a report this database does not hold", () => {
+    const UNKNOWN = reportIdKind.key("report-1793711675-gbfxs0");
+    let filed: string[] = [];
+    const handler = sinkHandler(
+      serverErrorSink,
+      () => (r: ServerErrorReport) => {
+        if (r.errorType === "UnknownFixedReport") filed.push(r.message);
+      },
+    );
+    beforeEach(() => {
+      filed = [];
+      handler.attach();
+    });
+    afterEach(() => handler.detach());
+
+    test("is filed once, not again by every ingest that re-reads it", async () => {
+      const claim = { reportId: UNKNOWN, commit: fix, landedAt: new Date() };
+      expect(await recordFixClaims([claim], repo, t.db)).toBe(0);
+      expect(await recordFixClaims([claim], repo, t.db)).toBe(0);
+      expect(filed).toEqual([
+        `[reports] commit ${fix.slice(0, 12)} on main names report ${UNKNOWN} (Fixes-report), which main's database does not hold`,
+      ]);
+    });
+
+    test("a new claim naming it is still filed, and a known claim beside it still lands", async () => {
+      const n = await recordFixClaims(
+        [
+          {
+            reportId: UNKNOWN,
+            commit: before,
+            landedAt: new Date(),
+            claimedBy: later,
+          },
+          { reportId: REPORT, commit: later, landedAt: new Date() },
+        ],
+        repo,
+        t.db,
+      );
+      expect(n).toBe(1);
+      expect(filed).toEqual([
+        `[reports] commit ${later.slice(0, 12)} on main names report ${UNKNOWN} (Report-fixed-by), which main's database does not hold`,
+      ]);
     });
   });
 });

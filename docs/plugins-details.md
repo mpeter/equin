@@ -25464,7 +25464,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
         - Uses tokens: `ui/tokens/color-palette --muted-foreground`
     - **`sql-column`** — Decoded columns: `parsedText` / `parsedJson` derive a column's type from a zod schema that really decodes it — on every read and every write — so a column can no longer declare a string-literal union, or a jsonb shape, that nothing verifies. `withWire` declares a column type's JSON wire form (a codec applied in JS by whatever projects the column onto the wire), carried on the built column's type so a row schema must match it.
       - Cross-plugin:
-        - Imported by: 31 plugins — full list in [`plugins/database/plugins/sql-column/REFERENCE.md`](../plugins/database/plugins/sql-column/REFERENCE.md)
+        - Imported by: 32 plugins — full list in [`plugins/database/plugins/sql-column/REFERENCE.md`](../plugins/database/plugins/sql-column/REFERENCE.md)
           - `apps` ×7
           - `infra` ×6
           - `fields` ×5
@@ -25473,6 +25473,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `network` ×2
           - `database/table-mirror/replica`
           - `ids`
+          - `reports/engine`
           - `search/engine`
           - `tasks/orchestration/watch`
           - `ui/theme-engine/saved-themes`
@@ -60226,10 +60227,11 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
       - Server:
         - Contributes:
           - `change-producer` "reports"
+          - `fork-data-exclusion` "report_fix_unknown_claims"
           - `fork-data-exclusion` "report_fixes"
           - `fork-data-exclusion` "reports"
           - `restart-skip.adopted` "the report fixes the adopted commit contains (deployed)"
-        - Uses: 33 symbols — full list in [`plugins/reports/plugins/engine/REFERENCE.md`](../plugins/reports/plugins/engine/REFERENCE.md)
+        - Uses: 34 symbols — full list in [`plugins/reports/plugins/engine/REFERENCE.md`](../plugins/reports/plugins/engine/REFERENCE.md)
           - `reports` ×10
           - `build/server-build-id` ×4
           - `shell/notifications` ×4
@@ -60237,6 +60239,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `primitives/commit-list` ×2
           - `build/restart-skip/hooks.RestartSkip`
           - `database/admin.ExcludeFromFork`
+          - `database/sql-column.parsedText`
           - `database.db`
           - `ids.idRef`
           - `infra/endpoints.implement`

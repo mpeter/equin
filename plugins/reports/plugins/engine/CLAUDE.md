@@ -230,6 +230,17 @@ from forks; `server/internal/fix-ledger.ts`):
   once the fix is live, is — `regresses`). Push refuses a retroactive claim
   for a report that already has a fix: the newest claim is the standing one,
   and an older commit must not stand in for the fix in force.
+  A claim naming a report main's database does not hold cannot enter the
+  ledger (its report id references `reports`), so it is filed as an
+  `UnknownFixedReport` server error ONCE: the first ingest to see it writes
+  its row to `report_fix_unknown_claims` (main's only), and that insert, not
+  the read, decides the filing. Most are upstream's — a fork carries
+  upstream's history, whose trailers name upstream's reports — and every boot
+  and advance of main re-reads them: on 2026-11-19 the fork's 364 such claims
+  had been filed 5,113 times. Telling a foreign claim from a fork-local one
+  by its report id's age fails (an upstream merge brings reports newer than
+  this database), and by reachability from upstream's refs depends on a
+  fetch that may never have run.
 - **Deployed** — main's backend pin AND its served bundle's `.build-commit`
   contain the commit (`stampDeployedFixes`, at `onAllReady` — a deploy restarts
   main — and on a restart-skip adoption). So "fixed" never precedes the code
@@ -273,10 +284,11 @@ so out-of-date code does not file reports. See that plugin's CLAUDE.md.
 - Server:
   - Contributes:
     - `change-producer` "reports"
+    - `fork-data-exclusion` "report_fix_unknown_claims"
     - `fork-data-exclusion` "report_fixes"
     - `fork-data-exclusion` "reports"
     - `restart-skip.adopted` "the report fixes the adopted commit contains (deployed)"
-  - Uses: 33 symbols — full list in [REFERENCE.md](./REFERENCE.md)
+  - Uses: 34 symbols — full list in [REFERENCE.md](./REFERENCE.md)
     - `reports` ×10
     - `build/server-build-id` ×4
     - `shell/notifications` ×4
@@ -284,6 +296,7 @@ so out-of-date code does not file reports. See that plugin's CLAUDE.md.
     - `primitives/commit-list` ×2
     - `build/restart-skip/hooks.RestartSkip`
     - `database/admin.ExcludeFromFork`
+    - `database/sql-column.parsedText`
     - `database.db`
     - `ids.idRef`
     - `infra/endpoints.implement`
