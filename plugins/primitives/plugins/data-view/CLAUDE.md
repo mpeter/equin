@@ -646,7 +646,13 @@ DataViewSlots.Grouping({
 interface FieldGrouping {
   id: string; // "smart" | "day" | "value" — persisted
   label: string;
-  plan: (ctx: GroupingPlanContext) => (value: FieldValue) => GroupBucket | null;
+  plan: (
+    ctx: GroupingPlanContext,
+  ) => (value: FieldValue, row?: GroupingRow) => GroupBucket | null;
+}
+
+interface GroupingRow {
+  read(fieldId: string): FieldValue;
 }
 
 interface GroupingPlanContext {
@@ -673,6 +679,11 @@ interface GroupByRule {
 ```
 
 - **`plan` is two-phase** — whole-set work once per render, then per row.
+- **`row` reads a companion field** the grouped field declares, such as a
+  date's `allDayFlag`, which decides whether its value is a date or an
+  instant. The in-memory partition passes it, reading through the view's
+  fields (hidden ones too), and throws for a field the view does not list. It
+  is absent for an `alwaysGroup` option and for server-listed sections.
 - **`now` is injected, never read** (the partition is memoized). The host reads
   `useGroupingClock()` — local midnight, re-armed by one timer at the next midnight
   (not polling: the change instant is known).
@@ -2796,6 +2807,7 @@ restyled 20.6k elements before, 10.4k after (`fullscreen-budget` cases unchanged
     - `GroupByRule`
     - `GroupEditConfig`
     - `GroupingPlanContext`
+    - `GroupingRow`
     - `HierarchyConfig`
     - `HostedToolbar`
     - `HostedToolbarForms`

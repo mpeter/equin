@@ -14,6 +14,12 @@
  * unrepresentable, and it is exactly the bug that would put a spring-forward
  * evening in the wrong bucket here.
  *
+ * **An all-day row is a date, not an instant.** A field declared with an
+ * all-day flag (`FieldDef.allDayFlag`) holds the rows that flag marks at UTC
+ * midnight of their calendar date — west of UTC, the evening before as a local
+ * instant. Such a row's day is that date, read from the row's flag (`dayOf`);
+ * every other value is an instant, and its day is the local day it falls on.
+ *
  * **The clock is injected.** `ctx.now` is a required parameter, never a
  * `Date.now()` read inside a grouping — the same argument `relativeDayLabel`
  * already makes ("an implicit clock read is exactly what makes this kind of
@@ -35,10 +41,12 @@ import type {
   FieldValue,
   GroupBucket,
   GroupingPlanContext,
+  GroupingRow,
 } from "@plugins/primitives/plugins/data-view/core";
 import {
   addDays,
   addMonths,
+  fromISODay,
   isSameDay,
   monthTitle,
   normalizeWeekStart,
@@ -59,7 +67,7 @@ const WEEK_STARTS_ON = normalizeWeekStart(1);
 
 /** What one grouping's `plan` returns: the bucket a value falls in, or `null`
  *  when the value is not a date this type can bucket. */
-type Bucketer = (value: FieldValue) => GroupBucket | null;
+type Bucketer = (value: FieldValue, row?: GroupingRow) => GroupBucket | null;
 
 /**
  * The fifteen Smart buckets, symmetric around today: past negative, today 0,
@@ -107,10 +115,25 @@ function toDate(value: FieldValue): Date | null {
   return null;
 }
 
-/** Local midnight of the day `value` falls on, or `null` when it is not a date. */
-function toDay(value: FieldValue): Date | null {
-  const date = toDate(value);
-  return date === null ? null : startOfDay(date);
+/**
+ * The grouped field's day reader: local midnight of the day a value falls on,
+ * or `null` when it is not a date. On a row the field's all-day flag marks, the
+ * value is a calendar date held at its UTC midnight, so the day is that date;
+ * otherwise (no flag declared, the flag unset, or no row behind the value) the
+ * value is an instant and the day is the local day it falls on.
+ */
+function dayOf(
+  ctx: GroupingPlanContext,
+): (value: FieldValue, row?: GroupingRow) => Date | null {
+  const flag = ctx.field.allDayFlag;
+  return (value, row) => {
+    const date = toDate(value);
+    if (date === null) return null;
+    if (flag !== undefined && row?.read(flag) === true) {
+      return fromISODay(date.toISOString().slice(0, 10));
+    }
+    return startOfDay(date);
+  };
 }
 
 /**
@@ -148,6 +171,7 @@ function weekLabel(weekStart: Date, today: Date, locale?: string): string {
  * informative of the two true statements.
  */
 function planSmart(ctx: GroupingPlanContext): Bucketer {
+  const toDay = dayOf(ctx);
   const today = startOfDay(new Date(ctx.now));
   const tomorrow = addDays(today, 1);
   const yesterday = addDays(today, -1);
@@ -165,8 +189,8 @@ function planSmart(ctx: GroupingPlanContext): Bucketer {
   const yearStart = new Date(today.getFullYear(), 0, 1);
   const nextYearStart = new Date(today.getFullYear() + 1, 0, 1);
 
-  return (value) => {
-    const day = toDay(value);
+  return (value, row) => {
+    const day = toDay(value, row);
     if (day === null) return null;
 
     if (isSameDay(day, today)) return SMART.today;
@@ -197,9 +221,10 @@ function planDay(
   ctx: GroupingPlanContext,
   locale: string | undefined,
 ): Bucketer {
+  const toDay = dayOf(ctx);
   const today = startOfDay(new Date(ctx.now));
-  return (value) => {
-    const day = toDay(value);
+  return (value, row) => {
+    const day = toDay(value, row);
     if (day === null) return null;
     return {
       key: `day:${toISODay(day)}`,
@@ -215,9 +240,10 @@ function planWeek(
   ctx: GroupingPlanContext,
   locale: string | undefined,
 ): Bucketer {
+  const toDay = dayOf(ctx);
   const today = startOfDay(new Date(ctx.now));
-  return (value) => {
-    const day = toDay(value);
+  return (value, row) => {
+    const day = toDay(value, row);
     if (day === null) return null;
     const weekStart = startOfWeek(day, WEEK_STARTS_ON);
     return {
@@ -230,11 +256,12 @@ function planWeek(
 
 /** Month: one section per calendar month, e.g. "May 2026". */
 function planMonth(
-  _ctx: GroupingPlanContext,
+  ctx: GroupingPlanContext,
   locale: string | undefined,
 ): Bucketer {
-  return (value) => {
-    const day = toDay(value);
+  const toDay = dayOf(ctx);
+  return (value, row) => {
+    const day = toDay(value, row);
     if (day === null) return null;
     const monthStart = startOfMonth(day);
     return {
@@ -248,9 +275,10 @@ function planMonth(
 }
 
 /** Year: one section per calendar year, e.g. "2026". */
-function planYear(_ctx: GroupingPlanContext): Bucketer {
-  return (value) => {
-    const day = toDay(value);
+function planYear(ctx: GroupingPlanContext): Bucketer {
+  const toDay = dayOf(ctx);
+  return (value, row) => {
+    const day = toDay(value, row);
     if (day === null) return null;
     const year = day.getFullYear();
     return {

@@ -1508,3 +1508,72 @@ describe("a section's identity (its value's glyph and colour)", () => {
     expect(section!.identity).toEqual({ icon });
   });
 });
+
+describe("a grouping that reads a companion field on the row", () => {
+  interface Event {
+    id: string;
+    startsAt: string;
+    allDay: boolean | null;
+  }
+  // A date field naming its all-day flag, and the flag itself, hidden.
+  const startsAt: FieldDef<Event> = {
+    id: "startsAt",
+    label: "When",
+    type: "date",
+    allDayFlag: "allDay",
+    value: (e) => e.startsAt,
+  };
+  const allDay: FieldDef<Event> = {
+    id: "allDay",
+    label: "All day",
+    type: "bool",
+    visible: false,
+    value: (e) => e.allDay,
+  };
+  // Buckets by the companion the field names, as the date type's do.
+  const byFlag: FieldGrouping = {
+    id: "flag",
+    label: "Flag",
+    plan:
+      ({ field }) =>
+      (_value, row) => {
+        const flag = row?.read(field.allDayFlag!);
+        const key = flag === true ? "all-day" : "timed";
+        return { key, label: key, order: flag === true ? 0 : 1 };
+      },
+  };
+  const events: Event[] = [
+    { id: "1", startsAt: "2026-12-04T15:00:00Z", allDay: false },
+    { id: "2", startsAt: "2026-12-04T00:00:00Z", allDay: true },
+    { id: "3", startsAt: "2026-12-05T00:00:00Z", allDay: null },
+  ];
+  const eventKey = (e: Event) => e.id;
+
+  test("each row's bucketer reads that row's flag, hidden field or not", () => {
+    const sections = partitionIntoSections(
+      events,
+      [startsAt, allDay],
+      by("startsAt", "flag"),
+      eventKey,
+      stubOpts<Event>({ "date:flag": byFlag }),
+    );
+    expect(
+      sections.map((s) => [s.key, s.entries.map((e) => e.row.id)]),
+    ).toEqual([
+      ["all-day", ["2"]],
+      ["timed", ["1", "3"]],
+    ]);
+  });
+
+  test("a read of a field the view does not list is a loud error", () => {
+    expect(() =>
+      partitionIntoSections(
+        events,
+        [startsAt],
+        by("startsAt", "flag"),
+        eventKey,
+        stubOpts<Event>({ "date:flag": byFlag }),
+      ),
+    ).toThrow(/grouping "flag" read field "allDay"/);
+  });
+});

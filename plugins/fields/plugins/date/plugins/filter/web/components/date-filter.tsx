@@ -171,9 +171,9 @@ function AnchorChooser({
       </ControlPanel.Section>
       <ControlPanel.Section needs="picker" label="Exact date">
         {/*
-          `toISODay` is local-midnight, so the emitted operand stays the bare
-          `yyyy-mm-dd` calendar day `resolveAnchorDay` (and its server
-          filter-sql twin) already resolve — never a full ISO instant.
+          `toISODay` writes the picked local day as a bare `yyyy-mm-dd`, which
+          `resolveAnchorDay` reads back through `fromISODay` — never a full
+          ISO instant.
         */}
         <Calendar
           value={fromISODay(exactIso)}

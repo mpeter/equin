@@ -43,8 +43,12 @@ client, so the filter language never sees a clock:
   "due on or before Today" stays correct as the clock advances.
 
 A legacy bare ISO string still resolves as an absolute day (backward compat), so
-pre-existing stored operands keep working. `resolveAnchorDay(operand, now?)` is
-the single resolver. `now` is a number or a thunk (default `Date.now`); a thunk
+pre-existing stored operands keep working. An absolute day is the local
+midnight of the day the user picked, read by `date-picker/core`'s `fromISODay`
+(the inverse of the calendar's `toISODay`); `new Date("yyyy-mm-dd")` is UTC
+midnight, the day before west of UTC, which made an exact-date rule select the
+previous day there. A string that is not a real `yyyy-mm-dd` day is an
+incomplete rule. `resolveAnchorDay(operand, now?)` is the single resolver. `now` is a number or a thunk (default `Date.now`); a thunk
 is called ONLY for a relative anchor, which is how the lowering reads the
 DataView's `ctx.now` lazily — an absolute date records no clock read, so only a
 filter with a relative anchor re-lowers at local midnight (`useFilterClock`).
@@ -59,8 +63,8 @@ Exact date `<Calendar>` (`@plugins/primitives/plugins/date-picker/web`).
 only express `{kind:"date"}`. Deleting it would drop `{kind:"relative"}` anchors
 ("3 days ago"), which is the whole point of the union. The calendar emits
 `toISODay(d)`, i.e. the bare `yyyy-mm-dd` the lowering resolves through
-`resolveAnchorDay`; emitting a full ISO instant instead would silently change
-filter semantics. (The lowering runs in the browser for server-delegated
+`resolveAnchorDay`; a full ISO instant is not a day, so the rule would read as
+incomplete and keep every row. (The lowering runs in the browser for server-delegated
 DataViews too — the server receives only absolute instant bounds.)
 
 ## Within operators
@@ -88,19 +92,8 @@ rule), mirroring the scalar operators.
     - `primitives/data-view.DataViewSlots`
     - `primitives/date-picker.Calendar`
     - `ui/icons.Icon`
-- Cross-plugin:
-  - Uses tokens:
-    - `ui/tokens/color-palette --background`
-    - `ui/tokens/color-palette --input`
-    - `ui/tokens/density --space-2xs`
-    - `ui/tokens/density --space-xs`
-    - `ui/tokens/shape --radius`
-    - `ui/tokens/shape --spacing`
-    - `ui/tokens/type-scale --font-scale`
-    - `ui/tokens/type-scale --font-size-body`
-    - `ui/tokens/type-scale --font-weight-normal`
-    - `ui/tokens/type-scale --line-height-body`
 - Core:
+  - Uses: `primitives/date-picker.fromISODay`
   - Exports (types):
     - `DateAnchor`
     - `DateRange`
@@ -113,6 +106,18 @@ rule), mirroring the scalar operators.
     - `resolveAnchorDay`
     - `TODAY`
     - `withinRange`
+- Cross-plugin:
+  - Uses tokens:
+    - `ui/tokens/color-palette --background`
+    - `ui/tokens/color-palette --input`
+    - `ui/tokens/density --space-2xs`
+    - `ui/tokens/density --space-xs`
+    - `ui/tokens/shape --radius`
+    - `ui/tokens/shape --spacing`
+    - `ui/tokens/type-scale --font-scale`
+    - `ui/tokens/type-scale --font-size-body`
+    - `ui/tokens/type-scale --font-weight-normal`
+    - `ui/tokens/type-scale --line-height-body`
 - Test helpers:
   - Web: `@plugins/fields/plugins/date/plugins/filter/web/testing`
     - `dateOperatorSet`

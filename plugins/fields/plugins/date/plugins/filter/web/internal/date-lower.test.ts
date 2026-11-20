@@ -283,9 +283,27 @@ describe("a date field with an all-day flag (America/New_York)", () => {
     expect(keeps("is", TODAY, timed("2026-12-05T04:59:00Z"))).toBe(true);
   });
 
-  // Relative anchors only: they resolve from `now` in the reader's zone. (An
-  // absolute `yyyy-mm-dd` anchor is parsed as UTC midnight by the anchor math,
-  // a day early west of UTC — a separate defect, not this lowering's.)
+  // An exact date is the day the user picked in this zone, not the UTC
+  // midnight that `new Date("2026-12-04")` reads, which is 3 Dec here.
+  it("an exact date holds that date's events, not the day before's", () => {
+    const DEC_4 = { kind: "date", iso: "2026-12-04" };
+    expect(keeps("is", DEC_4, allDay("2026-12-04T00:00:00Z"))).toBe(true);
+    expect(keeps("is", DEC_4, allDay("2026-12-03T00:00:00Z"))).toBe(false);
+    // 10:00 on 4 Dec, then 23:00 on 3 Dec, in New York.
+    expect(keeps("is", DEC_4, timed("2026-12-04T15:00:00Z"))).toBe(true);
+    expect(keeps("is", DEC_4, timed("2026-12-04T04:00:00Z"))).toBe(false);
+    expect(
+      keeps(
+        "is-between",
+        { from: "2026-12-04", to: "2026-12-04" },
+        allDay("2026-12-04T00:00:00Z"),
+      ),
+    ).toBe(true);
+    expect(keeps("is-before", DEC_4, allDay("2026-12-03T00:00:00Z"))).toBe(
+      true,
+    );
+  });
+
   it("compares an all-day event by its date under every day operator", () => {
     const YESTERDAY = { kind: "relative", unit: "day", amount: -1 };
     expect(keeps("is-before", TODAY, allDay("2026-12-04T00:00:00Z"))).toBe(

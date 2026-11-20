@@ -2,13 +2,16 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eventCalendarDay, eventDayFloor } from "./calendar-day";
 
 describe("event calendar day", () => {
-  const zone = process.env.TZ;
+  // Restored to the zone in force, never by deleting `TZ`: bun re-resolves an
+  // unset `TZ` to the host's zone, not to the one the process started in, and
+  // every later suite in this process would inherit it.
+  let zone = "";
   beforeAll(() => {
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     process.env.TZ = "America/New_York";
   });
   afterAll(() => {
-    if (zone === undefined) delete process.env.TZ;
-    else process.env.TZ = zone;
+    process.env.TZ = zone;
   });
 
   test("an all-day event is read in UTC", () => {

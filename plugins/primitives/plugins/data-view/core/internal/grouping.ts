@@ -42,10 +42,25 @@ export interface FieldGrouping {
    * bucket reaches for (`Number.POSITIVE_INFINITY`) sorts last ascending but
    * FIRST descending — so the catch-all would jump to the top of the list the
    * moment the view's sort flipped. `null` has neither failure mode available.
+   *
+   * `row` is the row the value came from, for a grouping whose field names a
+   * companion field it must read to bucket that value (a date's `allDayFlag`).
+   * It is absent where a value has no row behind it: an `alwaysGroup` option,
+   * or a section a server listed. Read only what the field itself declares.
    */
   readonly plan: (
     ctx: GroupingPlanContext,
-  ) => (value: FieldValue) => GroupBucket | null;
+  ) => (value: FieldValue, row?: GroupingRow) => GroupBucket | null;
+}
+
+/**
+ * The row behind a bucketed value, as a grouping may read it: another field's
+ * value, by that field's id. The partition reads it through the view's own
+ * field list, and throws for a field the view does not list — a companion the
+ * view forgot is a configuration error, not a timed row.
+ */
+export interface GroupingRow {
+  read(fieldId: string): FieldValue;
 }
 
 export interface GroupingPlanContext {

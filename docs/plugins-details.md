@@ -29979,6 +29979,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
             - Uses:
               - `primitives/date-picker.addDays`
               - `primitives/date-picker.addMonths`
+              - `primitives/date-picker.fromISODay`
               - `primitives/date-picker.isSameDay`
               - `primitives/date-picker.monthTitle`
               - `primitives/date-picker.normalizeWeekStart`
@@ -30000,19 +30001,8 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `primitives/data-view.DataViewSlots`
               - `primitives/date-picker.Calendar`
               - `ui/icons.Icon`
-          - Cross-plugin:
-            - Uses tokens:
-              - `ui/tokens/color-palette --background`
-              - `ui/tokens/color-palette --input`
-              - `ui/tokens/density --space-2xs`
-              - `ui/tokens/density --space-xs`
-              - `ui/tokens/shape --radius`
-              - `ui/tokens/shape --spacing`
-              - `ui/tokens/type-scale --font-scale`
-              - `ui/tokens/type-scale --font-size-body`
-              - `ui/tokens/type-scale --font-weight-normal`
-              - `ui/tokens/type-scale --line-height-body`
           - Core:
+            - Uses: `primitives/date-picker.fromISODay`
             - Exports (types):
               - `DateAnchor`
               - `DateRange`
@@ -30025,6 +30015,18 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `resolveAnchorDay`
               - `TODAY`
               - `withinRange`
+          - Cross-plugin:
+            - Uses tokens:
+              - `ui/tokens/color-palette --background`
+              - `ui/tokens/color-palette --input`
+              - `ui/tokens/density --space-2xs`
+              - `ui/tokens/density --space-xs`
+              - `ui/tokens/shape --radius`
+              - `ui/tokens/shape --spacing`
+              - `ui/tokens/type-scale --font-scale`
+              - `ui/tokens/type-scale --font-size-body`
+              - `ui/tokens/type-scale --font-weight-normal`
+              - `ui/tokens/type-scale --line-height-body`
           - Test helpers:
             - Web: `@plugins/fields/plugins/date/plugins/filter/web/testing`
               - `dateOperatorSet`
@@ -53174,6 +53176,7 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `GroupByRule`
           - `GroupEditConfig`
           - `GroupingPlanContext`
+          - `GroupingRow`
           - `HierarchyConfig`
           - `HostedToolbar`
           - `HostedToolbarForms`

@@ -113,13 +113,16 @@ describe("planReanchor", () => {
 });
 
 describe("planReanchor for an all-day series, west of UTC", () => {
-  const zone = process.env.TZ;
+  // Restored to the zone in force, never by deleting `TZ`: bun re-resolves an
+  // unset `TZ` to the host's zone, not to the one the process started in, and
+  // every later suite in this process would inherit it.
+  let zone = "";
   beforeAll(() => {
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     process.env.TZ = "America/New_York";
   });
   afterAll(() => {
-    if (zone === undefined) delete process.env.TZ;
-    else process.env.TZ = zone;
+    process.env.TZ = zone;
   });
 
   const tuesdays: EventDate = {

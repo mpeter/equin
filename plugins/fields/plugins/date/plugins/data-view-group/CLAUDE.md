@@ -21,6 +21,13 @@ it already declares its cell, its filter, its SQL cast and its value codec.
   `addDays` / `addMonths`), whose rule is `Date` setters and never epoch
   arithmetic — so a spring-forward day is still one bucket, and a late evening
   west of Greenwich is not filed under tomorrow.
+- **An all-day row is a date.** A field declared
+  `dateField({ allDayFlag: "allDay" })` holds the rows its flag marks at UTC
+  midnight of their calendar date. The bucketer reads that flag on the row
+  (`GroupingRow.read(field.allDayFlag)`, the second argument data-view's
+  partition passes) and files such a row by its date, so today's all-day event
+  is Today rather than Yesterday west of UTC. Every other value, and a value
+  with no row behind it, is an instant on the local calendar.
 - **The clock is injected.** `ctx.now` is the only source of "today"; nothing
   here calls `Date.now()`. Beyond testability, the partition runs inside a
   `useMemo`, so a clock read would change the memo key every render.
@@ -51,6 +58,7 @@ chosen so all fifteen Smart buckets are reachable at once).
   - Uses:
     - `primitives/date-picker.addDays`
     - `primitives/date-picker.addMonths`
+    - `primitives/date-picker.fromISODay`
     - `primitives/date-picker.isSameDay`
     - `primitives/date-picker.monthTitle`
     - `primitives/date-picker.normalizeWeekStart`

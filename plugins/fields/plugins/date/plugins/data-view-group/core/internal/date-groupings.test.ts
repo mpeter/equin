@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type {
   FieldValue,
   GroupBucket,
   GroupingPlanContext,
+  GroupingRow,
 } from "@plugins/primitives/plugins/data-view/core";
 import { buildDateGroupings } from "./date-groupings";
 
@@ -355,5 +356,90 @@ describe("every grouping", () => {
     expect(bucket("smart", value, nextYear).key).toBe("older");
     expect(bucket("month", value, nextYear)).toEqual(bucket("month", value));
     expect(bucket("year", value, nextYear)).toEqual(bucket("year", value));
+  });
+});
+
+// A field declared `dateField({ allDayFlag: "allDay" })` holds a calendar DATE
+// on the rows its flag marks, stored at that date's UTC midnight, and an
+// instant on the others. West of UTC the two disagree about the day: in New
+// York an all-day 4 Dec event (00:00Z) is 19:00 on 3 Dec as an instant.
+describe("a date field with an all-day flag (America/New_York)", () => {
+  // Restored to the zone in force, never by deleting `TZ`, which would
+  // re-resolve to the host's zone for every later suite in this process.
+  let zone = "";
+  beforeAll(() => {
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    process.env.TZ = "America/New_York";
+  });
+  afterAll(() => {
+    process.env.TZ = zone;
+  });
+
+  // 10:30 on Friday 4 Dec in New York.
+  const now = Date.parse("2026-12-04T15:30:00Z");
+  const flagged: GroupingPlanContext = {
+    now,
+    values: [],
+    field: {
+      id: "startsAt",
+      label: "When",
+      type: "date",
+      allDayFlag: "allDay",
+    },
+  };
+  const plain: GroupingPlanContext = {
+    now,
+    values: [],
+    field: { id: "startsAt", label: "When", type: "date" },
+  };
+  /** A row whose only readable field is the flag: a read of anything else is a bug. */
+  const row = (allDay: boolean | null): GroupingRow => ({
+    read: (fieldId) => {
+      if (fieldId !== "allDay") throw new Error(`read ${fieldId}`);
+      return allDay;
+    },
+  });
+  const keyOf = (
+    id: string,
+    context: GroupingPlanContext,
+    value: string,
+    on?: GroupingRow,
+  ) => grouping(id).plan(context)(value, on)?.key;
+
+  it("files today's all-day event under Today", () => {
+    expect(keyOf("smart", flagged, "2026-12-04T00:00:00Z", row(true))).toBe(
+      "today",
+    );
+    expect(keyOf("smart", flagged, "2026-12-05T00:00:00Z", row(true))).toBe(
+      "tomorrow",
+    );
+    expect(keyOf("day", flagged, "2026-12-04T00:00:00Z", row(true))).toBe(
+      "day:2026-12-04",
+    );
+  });
+
+  it("files an all-day event by its date at every granularity", () => {
+    // Monday 7 Dec opens a week; 1 Jan 2027 opens a month and a year.
+    expect(keyOf("week", flagged, "2026-12-07T00:00:00Z", row(true))).toBe(
+      "week:2026-12-07",
+    );
+    expect(keyOf("month", flagged, "2027-01-01T00:00:00Z", row(true))).toBe(
+      "month:2027-01",
+    );
+    expect(keyOf("year", flagged, "2027-01-01T00:00:00Z", row(true))).toBe(
+      "year:2027",
+    );
+  });
+
+  it("still reads a timed event's day in the viewer's zone", () => {
+    // 23:00 on 3 Dec in New York, on a timed row, an unflagged row, a field
+    // without the flag, and a value with no row behind it.
+    const lateOn3Dec = "2026-12-04T04:00:00Z";
+    expect(keyOf("smart", flagged, lateOn3Dec, row(false))).toBe("yesterday");
+    expect(keyOf("smart", flagged, lateOn3Dec, row(null))).toBe("yesterday");
+    expect(keyOf("smart", plain, "2026-12-04T00:00:00Z", row(true))).toBe(
+      "yesterday",
+    );
+    expect(keyOf("smart", flagged, lateOn3Dec)).toBe("yesterday");
   });
 });
