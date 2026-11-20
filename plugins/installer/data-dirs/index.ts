@@ -4,7 +4,8 @@ import { defineDataDir } from "@plugins/infra/plugins/paths/core";
  * One directory per install run (`<run-id>/`), written by install.sh itself
  * (it names this path by hand: it runs before any of the repo exists):
  * `events.jsonl` (every event of the run, what the window and the terminal
- * drew), `events.fifo` (the hub every writer reaches), and `timing.json`
+ * drew), `install.log` (every log line of the run, whole — the events cut the
+ * long ones), `events.fifo` (the hub every writer reaches), and `timing.json`
  * (how long each step took, when the install finished — the input of
  * `./equin installer estimates`). `latest` links the newest run.
  */
@@ -24,6 +25,14 @@ export const installRunsDir = defineDataDir({
         kind: "truncate-on-start",
         reason:
           "one file per install run, written once by that run and never appended to again",
+      },
+    },
+    {
+      pattern: "*/install.log",
+      bound: {
+        kind: "truncate-on-start",
+        reason:
+          "one file per install run, written only by that run (and its resume); the dir keeps the last 10 runs",
       },
     },
   ],
