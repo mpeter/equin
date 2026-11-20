@@ -29,7 +29,7 @@
  *     available;
  *  5. switches the embed to the Desktop, opens Places as a window from the
  *     shelf's launcher, takes it full screen, and comes back through the
- *     embed's launcher, "Back to Desktop".
+ *     launcher's Back to Desktop.
  *
  * And asserts, throughout, that nothing left the scope — the demo's rule (`internal/page-origin.ts`, this plugin's CLAUDE.md): no
  * page-origin `/api/…` request issued from inside the demo, every one
@@ -167,6 +167,17 @@ const PLACES_API =
 
 function embedRoot(page: Page): Locator {
   return page.locator("[data-app-embed]").first();
+}
+
+/**
+ * The panel under "Search or add places" (`UniversalSearchPanel`): a popover,
+ * portalled out of the embed (still in the scope), drawn over the side panel.
+ * Read a result here, never page-wide: without a map key the side panel lists
+ * every place, the query filters it to the same names, and that row comes
+ * first in the DOM while the open panel covers it.
+ */
+function searchPanel(page: Page): Locator {
+  return page.getByRole("group", { name: "Search or add places" });
 }
 
 await withBrowser(async (h) => {
@@ -337,12 +348,12 @@ await withBrowser(async (h) => {
   );
 
   // ── 3. a place's card: details and the icon pick are not available ─────
-  // Through the search bar's "Your places": the side panel lists what is in
-  // view, and the map opened on Paris.
+  // Through the search bar's "Your places": with a map, the side panel lists
+  // what is in view, and the map opened on Paris.
   const find = embedRoot(page).getByPlaceholder("Search or add places");
   await find.click();
   await find.fill(PLACE);
-  await page.getByText(PLACE, { exact: true }).first().click();
+  await searchPanel(page).getByText(PLACE, { exact: true }).click();
   await renders(
     `the card opens on "${PLACE}"`,
     () => embedRoot(page).getByLabel("Note", { exact: true }).count(),
@@ -407,15 +418,18 @@ await withBrowser(async (h) => {
   const search = embedRoot(page).getByPlaceholder("Search or add places");
   await search.click();
   await search.fill("Pastéis");
-  // The suggestions panel is a popover, portalled out of the embed.
   await renders(
     "the search's Google half says searching is not available",
-    () => page.getByText(/Searching Google Places isn't available/).count(),
+    () =>
+      searchPanel(page)
+        .getByText(/Searching Google Places isn't available/)
+        .count(),
     (n) => n > 0,
   );
   await renders(
     "the search still finds Demo's own place",
-    () => page.getByText("Pastéis de Belém", { exact: true }).count(),
+    () =>
+      searchPanel(page).getByText("Pastéis de Belém", { exact: true }).count(),
     (n) => n > 0,
   );
   await snap(page, OUT, "3-search");
@@ -462,8 +476,9 @@ await withBrowser(async (h) => {
     (n) => n > 0,
   );
   await snap(page, OUT, "5-full-screen");
-  // The embed's own launcher: "Back to Desktop" leaves full screen here on
-  // main and on the website's demo alike (the page's action bar is not needed).
+  // Back through the embed's own launcher, every audience's way back — not
+  // the page's Layout control, a developer-only view option that shows no
+  // "Desktop" radio with Developer mode off (`openBackToDesktop`).
   const way = await openBackToDesktop(embedRoot(page));
   await way.back.click();
   await way.close();
