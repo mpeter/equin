@@ -222,7 +222,7 @@ export async function startAgentProcess(
     await recordReport({
       kind: "crash",
       source: "server-caught",
-      message: `SDK agent ${id}: could not clone bun into ${sharedBunDir()} (${bun.code}), so Activity Monitor lists the agent as a bare \`bun\``,
+      message: `SDK agent ${id}: could not clone bun into ${await sharedBunDir()} (${bun.code}), so Activity Monitor lists the agent as a bare \`bun\``,
       data: { errorType: "SdkAgentBunLink", label: "runtime-sdk.process-name" },
     });
   const namedBun = bun.kind === "cloned" ? bun.path : null;

@@ -5,13 +5,15 @@ import {
 import { readdir } from "@plugins/packages/plugins/timed-fs/core";
 import { processNamesDir } from "../../data-dirs";
 import {
+  binaryIdentity,
   cloneNamedBinary,
   RUNNING_BUN,
+  type CloneSource,
   type NamedBinary,
 } from "./process-name";
 
-// The machine-wide named Buns: `process-names/bun-<version>/`, one APFS clone
-// per name and Bun version, shared by every checkout and backend. The CLI
+// The machine-wide named Buns: `process-names/bun-<version>-<identity>/`, one APFS clone
+// per name and Bun binary, shared by every checkout and backend. The CLI
 // verbs sit in it directly (the `./equin` script names them from its argv);
 // the processes a backend starts (`cloneSharedBun`) in its `processes/`
 // subdirectory, so no verb can ever be given one of their names.
@@ -26,9 +28,25 @@ import {
 // A symlink is not scanned, but the kernel names the process after the target
 // (`proc_name` `bun`), so a name needs a file of its own.
 
-/** The named Buns of the Bun this process runs on: `process-names/bun-<version>/`. */
-export function sharedBunDir(): AppPath {
-  return processNamesDir.file(`bun-${Bun.version}`);
+/**
+ * The named Buns of `bin` (default: the Bun this process runs on):
+ * `process-names/bun-<version>-<identity>/`.
+ *
+ * Keyed by the file as well as the version: one version string can be two
+ * different binaries (Homebrew's and mise's Bun 1.4.4 differ by 19 MB), and
+ * clones are current only for their own source's size and mtime, so checkouts
+ * on the two would re-clone over each other's names forever. The identity is
+ * the size and mtime a clone is judged current by (`isCurrentClone`), hashed:
+ * a stat, no file read, and equal for a clone, a copy that kept its mtime, and
+ * the same file under another path. The version stays in the name for whoever
+ * reads the directory.
+ */
+export async function sharedBunDir(
+  bin: CloneSource = RUNNING_BUN,
+): Promise<AppPath> {
+  return processNamesDir.file(
+    `bun-${Bun.version}-${await binaryIdentity(bin)}`,
+  );
 }
 
 /** Where the processes a backend starts live, under a version's directory. */
@@ -39,10 +57,10 @@ const PROCESSES = "processes";
  * `name` — left alone while current, so every process run through it after
  * the first skips the scan.
  */
-export function cloneSharedBun(name: string): Promise<NamedBinary> {
+export async function cloneSharedBun(name: string): Promise<NamedBinary> {
   return cloneNamedBinary({
     bin: RUNNING_BUN,
-    dir: joinAppPath(sharedBunDir(), PROCESSES),
+    dir: joinAppPath(await sharedBunDir(), PROCESSES),
     name,
   });
 }

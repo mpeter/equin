@@ -1,5 +1,6 @@
 import { PRODUCT_NAME } from "@plugins/framework/plugins/product-name/core";
 import { waitForFlock } from "@plugins/packages/plugins/flock/core";
+import { createHash } from "node:crypto";
 import { constants, type Stats } from "node:fs";
 import {
   copyFile,
@@ -226,6 +227,20 @@ export async function isCurrentCloneOf(
       return true;
   }
   return false;
+}
+
+/**
+ * Eight hex naming the binary `bin` is: a hash of the size and mtime (to the
+ * millisecond) that {@link isCurrentClone} judges a clone by. A stat, no read;
+ * equal for a clone, for a copy that kept its mtime and for the same file under
+ * another path; different for two Buns of one version.
+ */
+export async function binaryIdentity(bin: CloneSource): Promise<string> {
+  const { size, mtimeMs } = await stat(await sourceFile(bin));
+  return createHash("sha256")
+    .update(`${String(size)}:${String(Math.trunc(mtimeMs))}`)
+    .digest("hex")
+    .slice(0, 8);
 }
 
 /**

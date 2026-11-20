@@ -38,9 +38,15 @@ its first exec, so a current clone is never re-made.
   writer is dead (a crash mid-clone; the hardlink builds' leaks), so a dir
   heals the next time anything is named in it.
 - `sharedBunDir()` / `cloneSharedBun(name)` / `sharedBunsNamed(name)` — the
-  machine-wide named Buns, `process-names/bun-<version>/`: one clone per name
-  and Bun version, shared by every checkout and backend, so macOS scans each
-  once per machine. The CLI verbs sit in it directly (named by the `./equin`
+  machine-wide named Buns, `process-names/bun-<version>-<identity>/`: one clone
+  per name and Bun binary, shared by every checkout and backend, so macOS scans
+  each once per machine. `<identity>` is 8 hex of a hash of the binary's size
+  and mtime (the pair a clone is judged current by; a stat, no read): one
+  version string can be two binaries (Homebrew's and mise's Bun 1.4.4 differ by
+  19 MB), which would otherwise re-clone over each other's names. Folders of
+  the older `bun-<version>` spelling are never used again; the agent's clones
+  in them are reclaimed by `runtime-sdk`'s daily job, the verbs in them stay
+  (the `cache` data dir, safe to delete). The CLI verbs sit in it directly (named by the `./equin`
   script from its argv); what a backend starts (`cloneSharedBun`: the SDK
   agents' `equin · agent`) in its `processes/`, so no verb can take one of
   those names. `sharedBunsNamed` lists a name under every version, for the

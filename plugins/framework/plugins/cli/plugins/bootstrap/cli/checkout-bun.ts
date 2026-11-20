@@ -17,6 +17,6 @@ export async function recordCheckoutBun(): Promise<void> {
   await refreshCheckoutBun(
     asAppPath(process.cwd()),
     RUNNING_BUN,
-    sharedBunDir(),
+    await sharedBunDir(),
   );
 }
