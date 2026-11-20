@@ -44,7 +44,6 @@ import {
   withBrowser,
 } from "@plugins/framework/plugins/tooling/plugins/e2e-harness/e2e";
 import { waitFor } from "@plugins/framework/plugins/tooling/plugins/e2e-harness/plugins/page-ready/core";
-import { openFloatingActionBar } from "@plugins/shell/plugins/global-action-bar/e2e";
 import {
   bootDemo,
   demoPath,
@@ -52,6 +51,7 @@ import {
   RENDER_TIMEOUT_MS,
 } from "@plugins/apps/plugins/website/plugins/landing/plugins/screenshot/e2e";
 import {
+  openBackToDesktop,
   shownWindowIds,
   traceSwitch,
 } from "@plugins/apps/plugins/desktop/plugins/windows/e2e";
@@ -108,9 +108,15 @@ async function expectWindows(root: Locator, n: number): Promise<void> {
 
 /**
  * `rounds` round trips (full screen from the last window's titlebar, back
- * through the action bar's Layout control); each direction's elements
- * restyled per round. The Layout popover opens before the exit is traced, so
- * only the radio's click is billed to it.
+ * through the embed's launcher, "Back to Desktop"); each direction's elements
+ * restyled per round. The launcher opens before the exit is traced, so only
+ * the click is billed to it.
+ *
+ * Back through the launcher, not the action bar's Layout control: Layout is a
+ * developer-only view option, so with Developer mode off (the default) it has
+ * no "Desktop" radio and the run timed out waiting for one. The launcher is
+ * the way back every audience has, and it is the embed's own chrome, so the
+ * run no longer reads the page's config at all.
  */
 async function roundTrips(
   page: Page,
@@ -118,7 +124,6 @@ async function roundTrips(
 ): Promise<Record<Direction, number[]>> {
   const out: Record<Direction, number[]> = { enter: [], exit: [] };
   const fullscreen = root.getByRole("button", { name: "Full screen" }).last();
-  const gear = page.locator('[data-ui-owner^="ViewOptionsButton@"]');
   for (let round = 1; round <= rounds; round++) {
     const enter = await traceSwitch(page, root, () => fullscreen.click(), {
       settleMs: settle,
@@ -126,17 +131,13 @@ async function roundTrips(
     out.enter.push(enter.styled);
     await expectWindows(root, 0);
     await page.waitForTimeout(1000);
-    if (await gear.evaluate((el) => el.closest("[inert]") !== null))
-      await openFloatingActionBar(page);
-    await gear.click();
-    const desktop = page.getByRole("radio", { name: "Desktop", exact: true });
-    await desktop.waitFor();
+    const way = await openBackToDesktop(root);
     await page.waitForTimeout(500);
-    const exit = await traceSwitch(page, root, () => desktop.click(), {
+    const exit = await traceSwitch(page, root, () => way.back.click(), {
       settleMs: settle,
     });
     out.exit.push(exit.styled);
-    await page.keyboard.press("Escape");
+    await way.close();
     await page.waitForTimeout(1000);
     console.log(
       `  round ${round}${round === 1 ? " (cold)" : ""}: enter ${enter.styled}, exit ${exit.styled}`,

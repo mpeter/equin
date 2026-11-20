@@ -1,7 +1,7 @@
 // Profiles the desktop's Full screen round trip on THIS checkout's deploy:
 // opens an app in a desktop window, clicks the window's Full screen control
-// (the grow, then the switch to the solo placement) and picks Desktop in the
-// action bar's Layout control (the switch back), and for each direction reports where the main
+// (the grow, then the switch to the solo placement) and picks "Back to
+// Desktop" in the app launcher (the switch back), and for each direction reports where the main
 // thread went — Chrome's script / style / layout totals (CPU, not wall: a
 // throttled Chromium waits to be scheduled), the wall time from the gesture
 // to the tab container's new frame, and the CPU profile's self time by
@@ -52,8 +52,8 @@ import {
   pathUrl,
   withBrowser,
 } from "@plugins/framework/plugins/tooling/plugins/e2e-harness/e2e";
-import { openFloatingActionBar } from "@plugins/shell/plugins/global-action-bar/e2e";
 import { readDarwinBackground } from "@plugins/packages/plugins/spawn-priority/core";
+import { openBackToDesktop } from "./support/back-to-desktop";
 import { BIG_RECALC, styleRecalcs } from "./support/styled-elements";
 
 const path = arg("path", "/desktop/sonata");
@@ -363,16 +363,14 @@ await withBrowser(async (h) => {
   for (let round = 1; round <= rounds && gesture === "fullscreen"; round++) {
     await measure("enter", round, () => fullscreen.click());
     await page.waitForTimeout(1000);
-    // Back to the desktop the one way there is (no shortcut: Esc belongs to
-    // whatever is open): the action bar's Layout control. The popover opens
-    // before the measurement, so only the radio's click is billed to the exit.
-    await openFloatingActionBar(page);
-    await page.locator('[data-ui-owner^="ViewOptionsButton@"]').click();
-    const desktop = page.getByRole("radio", { name: "Desktop", exact: true });
-    await desktop.waitFor();
+    // Back to the desktop the way every audience has (no shortcut: Esc belongs
+    // to whatever is open): the launcher's "Back to Desktop" — the same exit
+    // the fullscreen budget traces. The launcher opens before the measurement,
+    // so only the click is billed to the exit.
+    const way = await openBackToDesktop(page);
     await page.waitForTimeout(500);
-    await measure("exit", round, () => desktop.click());
-    await page.keyboard.press("Escape");
+    await measure("exit", round, () => way.back.click());
+    await way.close();
     await page.waitForTimeout(1000);
   }
   // Round 1 styles the solo-only and desktop-only subtrees for the first

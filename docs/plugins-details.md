@@ -34054,8 +34054,8 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
                   - `waitForNotBusy`
                   - `waitForScreenReady`
               - Cross-plugin:
-                - Imported by: 67 plugins — full list in [`plugins/framework/plugins/tooling/plugins/e2e-harness/plugins/page-ready/REFERENCE.md`](../plugins/framework/plugins/tooling/plugins/e2e-harness/plugins/page-ready/REFERENCE.md)
-                  - `apps` ×24
+                - Imported by: 68 plugins — full list in [`plugins/framework/plugins/tooling/plugins/e2e-harness/plugins/page-ready/REFERENCE.md`](../plugins/framework/plugins/tooling/plugins/e2e-harness/plugins/page-ready/REFERENCE.md)
+                  - `apps` ×25
                   - `conversations` ×11
                   - `primitives` ×11
                   - `page` ×8
@@ -61693,8 +61693,6 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
           - `ui/tokens/shape --spacing`
         - Imported by:
           - `apps-core/surface`
-          - `apps/desktop/fullscreen-budget`
-          - `apps/desktop/windows`
           - `apps/home/tour`
           - `hints/ask`
           - `shell/notifications`

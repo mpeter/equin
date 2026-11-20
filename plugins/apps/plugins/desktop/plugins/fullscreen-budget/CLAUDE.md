@@ -36,6 +36,17 @@ rendered — and none is slow enough for the stall report to see.
   own modules, the demo's in-browser host failing to load its plugins, then
   the 30 s wait for a window). The convergence run holds the namespace's
   deploy lock for its whole run; the script takes it shared and drops it.
+- **The way back is the launcher's "Back to Desktop"** (`openBackToDesktop`,
+  `windows/e2e`), drawn by the embed itself — not the action bar's Layout
+  control. Layout is a developer-only view option (`audience: "developer"`), so
+  on an install whose user has Developer mode off (the default) the gear shows
+  no "Desktop" radio: every run from 2026-11-19 timed out there (30 s
+  `waitFor`) and exited 1 — nothing to do with the platform. The launcher is
+  every audience's way back and reads no page config, so the run measures the
+  same switch whoever's machine it runs on. The 403 on
+  `POST /api/analytics/collect` in those transcripts is main refusing the
+  demo's tracker beacon from an agent session (the endpoint declares no
+  `agentWrite`); the client files nothing for it and it fails nothing.
 - Reading a run on main: `job_runs` shows two rows per commit — a ~100 ms
   `suspended` one (claim + spawn) and, ~80 s later, a few-ms `succeeded` one
   (the wake that records the child's exit). The measurement is the child, in
