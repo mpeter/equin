@@ -73,6 +73,12 @@ export interface LiveField {
    * field.
    */
   readonly clock: ClockForm | null;
+  /**
+   * A date field's all-day companion (`FieldMeta.allDayFlag`): the id of the
+   * listed boolean field flagging the rows whose value is a calendar date at
+   * UTC midnight. Absent for every other field.
+   */
+  readonly allDayFlag?: string;
 }
 
 // The phantom a field set's ids ride on — a symbol, so it never collides
@@ -462,6 +468,17 @@ export function resolveFieldsSpec(
     const domain = fieldDomain(field);
     if (domain !== null) filterable[name] = { domain } as FilterColumn;
   }
+  // A date filter splits on the all-day flag, so the flag is a filter column
+  // of the row: listed beside the date, and boolean.
+  for (const [name, field] of listed) {
+    const flag = field.meta.allDayFlag;
+    if (flag === undefined) continue;
+    if (filterable[flag]?.domain !== "boolean") {
+      fail(
+        `"${name}" is flagged all-day by "${flag}", which is not a listed boolean field — pick it beside "${name}".`,
+      );
+    }
+  }
   const exposes: Record<string, EntityRef> = {};
   if (from !== undefined && shape === undefined && spec.baseExposures !== false)
     exposes.base = from as EntityRef;
@@ -500,6 +517,9 @@ export function resolveFieldsSpec(
               sortable: sortable.includes(name),
               order: field.meta.valueOrder ?? null,
               clock: clocks.get(name) ?? null,
+              ...(field.meta.allDayFlag !== undefined
+                ? { allDayFlag: field.meta.allDayFlag }
+                : {}),
             } satisfies LiveField),
           ]),
         ),

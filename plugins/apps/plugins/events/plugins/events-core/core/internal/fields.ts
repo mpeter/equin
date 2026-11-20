@@ -204,10 +204,15 @@ export const eventFields = {
    * `apps/events/reanchor` plugin is its maintainer: it rolls this column (with
    * `endsAt` / `allDay`) forward from `date` on a schedule and at boot, so
    * correctness does not depend on the source being re-extracted.
+   *
+   * Two axes: an all-day row holds UTC midnight of its calendar date
+   * (`event-date`'s `eventCalendarDay`), a timed row its instant. `allDayFlag`
+   * says so, and a date filter on it compares each row on its own axis — an
+   * all-day event stays "today" all day, in any zone.
    */
-  startsAt: dateField({ label: "When" }),
+  startsAt: dateField({ label: "When", allDayFlag: "allDay" }),
   endsAt: nullable(dateField()),
-  allDay: boolField(),
+  allDay: boolField({ label: "All day" }),
   venue: nullable(textField({ label: "Venue" })),
   city: nullable(textField({ label: "City" })),
   url: nullable(textField({ label: "Link" })),

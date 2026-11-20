@@ -30025,6 +30025,9 @@ A list longer than 20 values (importers, uses, contributions) is summarized here
               - `resolveAnchorDay`
               - `TODAY`
               - `withinRange`
+          - Test helpers:
+            - Web: `@plugins/fields/plugins/date/plugins/filter/web/testing`
+              - `dateOperatorSet`
         - **`inline`** — Date field type: data-view inline cell editor (native date input editor).
           - Web:
             - Contributes: `DataViewSlots.CellEditor` "date" → `DateEditor`

@@ -14,7 +14,8 @@ export interface DateFieldDef extends FieldDef<Date> {
 }
 
 // The options mark the field (`FieldMarks`: a declared `default`, a `label`,
-// `filterable: false`).
+// `filterable: false`). `allDayFlag` names the boolean field beside it that
+// flags the rows holding a calendar date at UTC midnight (`FieldMeta.allDayFlag`).
 export function dateField<
   const O extends FieldMeta & { default?: Date } = Record<never, never>,
 >(
@@ -25,6 +26,11 @@ export function dateField<
     schema: z.coerce.date(),
     defaultValue: opts?.default ?? new Date(0),
     ...declaredDefault(opts),
-    meta: pickMeta(opts),
+    meta: {
+      ...pickMeta(opts),
+      ...(opts?.allDayFlag !== undefined
+        ? { allDayFlag: opts.allDayFlag }
+        : {}),
+    },
   }) as DateFieldDef & FieldMarks<O>;
 }

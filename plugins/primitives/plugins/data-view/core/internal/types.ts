@@ -761,6 +761,15 @@ interface FieldDefBase<TRow> {
    */
   valueOrder?: readonly string[];
   /**
+   * A date field's all-day companion (`LiveField.allDayFlag`, from
+   * `dateField({ allDayFlag })`): the id of the boolean field flagging the rows
+   * whose value is a calendar date held at UTC midnight. The date filter's
+   * lowering compares those rows by their date and the rest by the reader's
+   * local day, so an all-day event stays "today" all day in any zone. Its
+   * value is semantics, not presentation: no override sets it.
+   */
+  allDayFlag?: string;
+  /**
    * Multi-value projection for tags-style fields. Folded into search and read by
    * the filter as a `stringArray` row value. Mutually exclusive with `value`.
    */

@@ -70,6 +70,14 @@ bespoke toggle chip on the toolbar, or a hand-rolled `.map()` of `<Row>`
   lowers to `contains` over `EVENT_LIST_SEARCHABLE`. A tag is not searchable
   text (a live collection's filterable columns are row fields) — the Tags
   filter finds one.
+- **`allDay` is listed but off the body** (`visible: false`): it is `startsAt`'s
+  all-day flag (`dateField({ allDayFlag: "allDay" })` on the entity), so a date
+  rule on `startsAt` lowers per axis — an all-day row (stored at UTC midnight of
+  its date) by calendar date, a timed row by the viewer's local day. That keeps
+  today's all-day event in `Upcoming` all day west of UTC. The live field plan
+  fails if the flag is not a listed boolean field, so it is picked, not carried.
+  `web/__tests__/upcoming-view.test.ts` runs the configured views' filters in
+  America/New_York.
 
 `core/internal/fields.test.ts` pins the derived ids (saved views name them).
 

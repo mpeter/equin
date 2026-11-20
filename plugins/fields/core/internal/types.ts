@@ -47,6 +47,14 @@ export interface FieldMeta {
    * order names exactly the field's values. Absent = sorted as its type sorts.
    */
   valueOrder?: readonly string[];
+  /**
+   * A date field whose rows are on two axes: the field named here (a boolean
+   * beside it) flags the rows whose value is a CALENDAR DATE, held at UTC
+   * midnight of that date (an all-day event), not an instant. A date filter
+   * then compares those rows by their date, the rest by the reader's local
+   * day. Set by `dateField({ allDayFlag })`; a list must list the flag too.
+   */
+  allDayFlag?: string;
 }
 
 /**

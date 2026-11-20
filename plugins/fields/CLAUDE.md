@@ -176,7 +176,7 @@ tokens, so anything that imports the barrels back would cycle.
   - **`byte-size`** [4 sub-plugins] — Byte-size field type: identity only, extends number — a size in bytes, drawn in SI units (`840 B`, `18.4 kB`, `1.5 GB`) and filtered by operands typed in units (`1 GB`, `500kB`); sort and grouping…
   - **`bytes`** [2 sub-plugins] — Bytes field type: identity only — binary data whose wire value is base64. No cell or filter: no list shows a blob.
   - **`color`** [2 sub-plugins] — Color field type: identity only. The read-only swatch cell lives in the plugins/table sub-plugin; color has no filter (sparse).
-  - **`date`** [8 sub-plugins] — Date field type: identity only. The data-view cell (relative time) and filter (date range) capabilities live in the plugins/{table,filter} sub-plugins.
+  - **`date`** [test helpers] [8 sub-plugins] — Date field type: identity only. The data-view cell (relative time) and filter (date range) capabilities live in the plugins/{table,filter} sub-plugins.
   - **`directory-path`** [1 sub-plugin] — Directory-path field type: identity only. The config-render capability (a folder picker) and the dirPathField factory live in the plugins/config sub-plugin.
   - **`duration`** [4 sub-plugins] — Duration field type: identity only, extends number — a span in milliseconds, drawn compact (`850ms`, `4.2s`, `1m 04s`, `2h 05m`) and filtered by operands typed in units (`30s`, `5m`); sort and…
   - **`dynamic-enum`** [exempt] [1 sub-plugin] — Dynamic enum (select) field type: identity only. Options are resolved at config-render time via the plugins/config sub-plugin's slot.

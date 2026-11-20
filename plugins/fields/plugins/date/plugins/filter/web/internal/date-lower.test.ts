@@ -1,9 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import {
+  clause,
+  matchesFilter,
+  type Filterable,
+} from "@plugins/network/plugins/live/plugins/filter/core";
 import {
   lowersToMatch,
   testField,
 } from "@plugins/primitives/plugins/data-view/web/testing";
-import type { FilterFieldValue } from "@plugins/primitives/plugins/data-view/core";
+import type {
+  FieldDef,
+  FilterFieldValue,
+} from "@plugins/primitives/plugins/data-view/core";
 import { withinRange } from "../../core";
 import { dateLower } from "./date-lower";
 
@@ -194,5 +202,134 @@ describe("is-within-past / is-within-next", () => {
     expect(keeps("is-within-past", undefined, daysFromNow(0))).toBe(true);
     expect(keeps("is-within-next", {}, daysFromNow(0))).toBe(true);
     expect(keeps("is-within-past", week, null)).toBe(false);
+  });
+});
+
+// A date field whose value is a calendar DATE on the rows its all-day flag
+// marks (held at that date's UTC midnight), an instant on the others. West of
+// UTC the two disagree about which day a stored instant falls on: in New York
+// an all-day 4 Dec event (00:00Z) is 19:00 on 3 Dec as an instant.
+describe("a date field with an all-day flag (America/New_York)", () => {
+  // Restored to the zone in force, never by deleting `TZ`: bun re-resolves an
+  // unset `TZ` to the host's zone, not to the one the process started in, and
+  // every later suite in this process would inherit it.
+  let zone = "";
+  beforeAll(() => {
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    process.env.TZ = "America/New_York";
+  });
+  afterAll(() => {
+    process.env.TZ = zone;
+  });
+
+  // 10:30 on 4 Dec in New York.
+  const now = Date.parse("2026-12-04T15:30:00Z");
+  const field: FieldDef<unknown> = {
+    id: "startsAt",
+    label: "When",
+    allDayFlag: "allDay",
+  };
+  const FILTERABLE: Filterable = {
+    startsAt: { domain: "instant" },
+    allDay: { domain: "boolean" },
+  };
+  const TODAY = { kind: "relative", unit: "day", amount: 0 };
+  interface Row {
+    startsAt: string;
+    allDay: boolean | null;
+  }
+  const allDay = (startsAt: string): Row => ({ startsAt, allDay: true });
+  const timed = (startsAt: string): Row => ({ startsAt, allDay: false });
+  const keeps = (op: keyof typeof dateLower, operand: unknown, row: Row) => {
+    const filter = dateLower[op](operand, { column: "startsAt", field, now });
+    if (filter === undefined) throw new Error(`${op} lowered no filter`);
+    return matchesFilter(
+      { startsAt: new Date(row.startsAt), allDay: row.allDay },
+      filter,
+      FILTERABLE,
+    );
+  };
+
+  it("keeps today's all-day event on or after Today, all day long", () => {
+    expect(keeps("is-on-or-after", TODAY, allDay("2026-12-04T00:00:00Z"))).toBe(
+      true,
+    );
+    expect(keeps("is-on-or-after", TODAY, allDay("2026-12-03T00:00:00Z"))).toBe(
+      false,
+    );
+  });
+
+  it("still reads a timed event's day in the viewer's zone", () => {
+    // 23:00 on 3 Dec, then 01:00 on 4 Dec, in New York.
+    expect(keeps("is-on-or-after", TODAY, timed("2026-12-04T04:00:00Z"))).toBe(
+      false,
+    );
+    expect(keeps("is-on-or-after", TODAY, timed("2026-12-04T06:00:00Z"))).toBe(
+      true,
+    );
+    // An unset flag is a timed event.
+    expect(
+      keeps("is-on-or-after", TODAY, {
+        startsAt: "2026-12-04T04:00:00Z",
+        allDay: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("is Today holds the all-day events of that date and the timed ones of that local day", () => {
+    expect(keeps("is", TODAY, allDay("2026-12-04T00:00:00Z"))).toBe(true);
+    expect(keeps("is", TODAY, allDay("2026-12-05T00:00:00Z"))).toBe(false);
+    // 23:59 on 4 Dec in New York.
+    expect(keeps("is", TODAY, timed("2026-12-05T04:59:00Z"))).toBe(true);
+  });
+
+  // Relative anchors only: they resolve from `now` in the reader's zone. (An
+  // absolute `yyyy-mm-dd` anchor is parsed as UTC midnight by the anchor math,
+  // a day early west of UTC — a separate defect, not this lowering's.)
+  it("compares an all-day event by its date under every day operator", () => {
+    const YESTERDAY = { kind: "relative", unit: "day", amount: -1 };
+    expect(keeps("is-before", TODAY, allDay("2026-12-04T00:00:00Z"))).toBe(
+      false,
+    );
+    expect(keeps("is-before", TODAY, allDay("2026-12-03T00:00:00Z"))).toBe(
+      true,
+    );
+    expect(keeps("is-after", YESTERDAY, allDay("2026-12-04T00:00:00Z"))).toBe(
+      true,
+    );
+    expect(
+      keeps("is-on-or-before", YESTERDAY, allDay("2026-12-04T00:00:00Z")),
+    ).toBe(false);
+    expect(
+      keeps("is-on-or-before", YESTERDAY, allDay("2026-12-03T00:00:00Z")),
+    ).toBe(true);
+    expect(
+      keeps(
+        "is-between",
+        { from: TODAY, to: TODAY },
+        allDay("2026-12-04T00:00:00Z"),
+      ),
+    ).toBe(true);
+    expect(
+      keeps(
+        "is-within-next",
+        { unit: "day", amount: 1 },
+        allDay("2026-12-04T00:00:00Z"),
+      ),
+    ).toBe(true);
+    expect(
+      keeps(
+        "is-within-past",
+        { unit: "day", amount: 1 },
+        allDay("2026-12-03T00:00:00Z"),
+      ),
+    ).toBe(true);
+  });
+
+  it("lowers emptiness on the column alone", () => {
+    const ctx = { column: "startsAt", field, now };
+    expect(dateLower["is-empty"](undefined, ctx)).toEqual(
+      clause("startsAt", "isEmpty"),
+    );
   });
 });

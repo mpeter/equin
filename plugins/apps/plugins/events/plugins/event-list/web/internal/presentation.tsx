@@ -79,5 +79,8 @@ export const eventPresentation = FieldPresentation.Register({
     url: { cell: (url) => <UrlCell url={url} /> },
     // Search-only: a filter on it is offered, a column is not.
     description: { visible: false },
+    // `startsAt`'s all-day flag, listed so its date filter can split on it;
+    // the `startsAt` cell already says it (no time), so no column repeats it.
+    allDay: { visible: false },
   },
 });

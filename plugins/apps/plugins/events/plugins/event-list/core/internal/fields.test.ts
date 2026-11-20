@@ -2,8 +2,9 @@
  * The events list's fields, derived from the `events` entity: the ids the
  * list (and every saved view) named before are unchanged — `sourceId` (the
  * source dimension, once contributed) included — plus `description`, listed
- * so the search box matches it; the sortable ones are `EVENT_LIST_SORTABLE`;
- * every search column is filterable text.
+ * so the search box matches it, and `allDay`, listed as `startsAt`'s all-day
+ * flag; the sortable ones are `EVENT_LIST_SORTABLE`; every search column is
+ * filterable text.
  *
  * Run: `./equin test plugins/apps/plugins/events/plugins/event-list`.
  */
@@ -28,10 +29,11 @@ const LIST_FIELD_IDS = [
 ];
 
 describe("events list fields", () => {
-  test("derives the list's ids, in order, then the search-only description", () => {
+  test("derives the list's ids, in order, then the search-only description and the all-day flag", () => {
     expect(Object.keys(eventsList.fields)).toEqual([
       ...LIST_FIELD_IDS,
       "description",
+      "allDay",
     ]);
     expect([...eventsList.sortable]).toEqual([...EVENT_LIST_SORTABLE]);
     expect(eventsList.scopedColumns).toBe(true);
@@ -40,7 +42,12 @@ describe("events list fields", () => {
   test("labels, types and options come from the entity", () => {
     const f = eventsList.fields;
     expect(f.title).toMatchObject({ label: "Title", primary: true });
-    expect(f.startsAt).toMatchObject({ label: "When", domain: "instant" });
+    expect(f.startsAt).toMatchObject({
+      label: "When",
+      domain: "instant",
+      allDayFlag: "allDay",
+    });
+    expect(f.allDay).toMatchObject({ label: "All day", domain: "boolean" });
     expect(f.category.options).toMatchObject({ music: { label: "Music" } });
     expect(f.tags).toMatchObject({ typeId: "tags", domain: "stringArray" });
     expect(f.recurring.domain).toBe("boolean");

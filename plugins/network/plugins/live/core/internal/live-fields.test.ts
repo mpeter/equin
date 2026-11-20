@@ -101,6 +101,52 @@ describe("an ordinal field (`enumTextField(values, { ordered: true })`)", () => 
   });
 });
 
+describe("a date field with an all-day flag (`dateField({ allDayFlag })`)", () => {
+  const events = entityRef("events", {
+    id: textField(),
+    startsAt: dateField({ label: "When", allDayFlag: "allDay" }),
+    allDay: boolField({ label: "All day" }),
+    note: textField({ label: "Note" }),
+  });
+  const declare = (spec: Record<string, unknown>) => () =>
+    liveCollection("test.live-fields.all-day", {
+      from: events,
+      carry: { pick: ["id"] },
+      id: "id",
+      all: {
+        orderBy: [["id", "asc"]],
+        unbounded: { reason: "r", budget: 1000 },
+      },
+      ...spec,
+    } as never) as LiveRowsCollection<unknown>;
+
+  test("carries the flag's id on the date field, nothing on the others", () => {
+    const listed = declare({ pick: ["startsAt", "allDay"] })();
+    expect(listed.fields.startsAt!.allDayFlag).toBe("allDay");
+    expect("allDayFlag" in listed.fields.allDay!).toBe(false);
+  });
+
+  test("throws when the flag is not a listed boolean field", () => {
+    // Not picked: a filter could not name it.
+    expect(declare({ pick: ["startsAt"] })).toThrow(
+      /"startsAt" is flagged all-day by "allDay", which is not a listed boolean field/,
+    );
+    // Carried is not listed either.
+    expect(
+      declare({ pick: ["startsAt"], carry: { pick: ["id", "allDay"] } }),
+    ).toThrow(/not a listed boolean field/);
+    // Not a boolean.
+    expect(
+      declare({
+        fields: {
+          when: dateField({ label: "When", allDayFlag: "note" }),
+        },
+        pick: ["note"],
+      }),
+    ).toThrow(/"when" is flagged all-day by "note"/);
+  });
+});
+
 describe("liveCollection — the fields spelling", () => {
   test("derives the row: picked, own and carried fields, plus `$columns` when it reaches an entity", () => {
     expect(window.rowKeys).toEqual([

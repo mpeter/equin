@@ -6,34 +6,14 @@ import {
 } from "@plugins/primitives/plugins/pane/web";
 import {
   DataView,
-  defineDataView,
   fieldOverrides,
-  liveDataSource,
 } from "@plugins/primitives/plugins/data-view/web";
 import { Placeholder } from "@plugins/primitives/plugins/css/plugins/placeholder/web";
 import { eventsApp } from "@plugins/apps/plugins/events/plugins/shell/core";
 import { externalUrl } from "@plugins/apps/plugins/events/plugins/events-core/core";
-import { EVENT_LIST_SEARCHABLE, eventsList, type EventListRow } from "../core";
+import { eventsList, type EventListRow } from "../core";
+import { eventsListSource } from "./internal/source";
 import { useOpenEvent } from "./internal/use-open-event";
-
-/**
- * The Events surface id. Config-backed like every DataView: the view instances
- * (`Upcoming`, `All`, `By category`, …) live ONLY in
- * `config/apps/events/event-list/events.list.jsonc` — there is no
- * code-synthesized default, by design. It IS `eventsList`'s column scope
- * (asserted at mount): the surface whose custom columns sort and filter it.
- */
-const EVENTS_LIST_VIEW = defineDataView("events.list");
-
-/**
- * The live source: the `events.list` collection, kept fresh by the routed change
- * feed (an event write, a source's type / config / enabled flip) with no tick
- * and no refetch. The search box matches what an event is and where it is.
- */
-const eventsListSource = liveDataSource(eventsList, {
-  surface: EVENTS_LIST_VIEW,
-  searchable: EVENT_LIST_SEARCHABLE,
-});
 
 /**
  * The fields are `eventsList`'s, derived (the events entity's, presented by

@@ -8,11 +8,16 @@ import {
 // is the `events` entity's, declared once in events-core
 // (`core/internal/fields.ts`); this names only which of them, in what order.
 //
-// `imageUrl` / `allDay` / `date` are deliberately NOT listed: they are display
-// or formatting inputs the row renderer reads straight off the record, and
+// `imageUrl` / `date` are deliberately NOT listed: they are display or
+// formatting inputs the row renderer reads straight off the record, and
 // promoting them would only add dead sort/filter axes. `date` in particular is
 // jsonb: the queryable dimensions are its denormalized projections
 // (`startsAt`, `recurring`), which are indexed columns and listed below.
+//
+// `allDay` IS listed, last and hidden by the list's presentation: it is
+// `startsAt`'s all-day flag (`dateField({ allDayFlag })`), so a date filter on
+// `startsAt` compares an all-day event by its date — and a filter can only
+// name a listed field.
 //
 // `description` is listed so the search box can match it (a search column is
 // a filterable text column) and kept off the body by the list's overrides.
@@ -42,6 +47,7 @@ export const EVENT_LIST_PICK = [
   "disappearedAt",
   "sourceId",
   "description",
+  "allDay",
 ] as const;
 
 /** The closed category vocabulary, as option rows (a surface outside the list's fields). */

@@ -44,7 +44,6 @@ export const eventsList = liveCollection("events.list", {
       "externalId",
       "date",
       "endsAt",
-      "allDay",
       "imageUrl",
       "recurrenceLabel",
       "createdAt",

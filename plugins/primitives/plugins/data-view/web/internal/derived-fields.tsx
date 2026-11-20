@@ -251,6 +251,7 @@ function derivedField(
     ...(options !== undefined ? { options } : {}),
     ...(valueDomain !== undefined ? { valueDomain } : {}),
     ...(field.order !== null ? { valueOrder: field.order } : {}),
+    ...(field.allDayFlag !== undefined ? { allDayFlag: field.allDayFlag } : {}),
     ...(field.domain === "stringArray"
       ? { values: (row) => (read(row) as string[] | undefined) ?? [] }
       : { value: (row) => (read(row) ?? null) as FieldValue }),
